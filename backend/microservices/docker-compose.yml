@@ -18,10 +18,31 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 26257
-      DB_NAME: DB
+      DB_NAME: defaultdb   
       DB_USER: root
       DB_PASSWORD: ""
 
+  user_server:
+    image: users_service
+    build:
+      context: users-service/
+      dockerfile: Dockerfile
+    restart: always
+    container_name: "user-server"
+    hostname: "user-server"
+    ports:
+      - "8002:8002"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 8002
+      JWT_SECRET: TUCKOGOAT
+      DB_HOST: db
+      DB_PORT: 26257
+      DB_NAME: defaultdb
+      DB_USER: root
+      DB_PASSWORD: ""
 
   db:
     image: cockroachdb/cockroach:v23.2.0
