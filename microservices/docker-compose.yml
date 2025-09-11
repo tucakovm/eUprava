@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+
+  dining_server:
+    image: dining_service
+    build:
+      context: dining_service/
+      dockerfile: Dockerfile
+    restart: always
+    container_name: "dining-server"
+    hostname: "dining-server"
+    ports:
+      - "8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 26257
+      DB_NAME: DB
+      DB_USER: root
+      DB_PASSWORD: ""
+
+
+  db:
+    image: cockroachdb/cockroach:v23.2.0
+    container_name: cockroachdb
+    hostname: cockroachdb
+    command: start-single-node --insecure
+    ports:
+      - "26257:26257"
+      - "8080:8080"
+    volumes:
+      - cockroach-data:/cockroach/cockroach-data
+    healthcheck:
+      test: ["CMD-SHELL", "cockroach sql --insecure --execute='SELECT 1;'"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  cockroach-data:
+
