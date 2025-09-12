@@ -5,7 +5,7 @@ services:
   dining_server:
     image: dining_service
     build:
-      context: dining_service/
+      context: backend/microservices/dining_service/
       dockerfile: Dockerfile
     restart: always
     container_name: "dining-server"
@@ -25,7 +25,7 @@ services:
   user_server:
     image: users_service
     build:
-      context: users-service/
+      context: backend/microservices/users-service/
       dockerfile: Dockerfile
     restart: always
     container_name: "user-server"
@@ -43,6 +43,16 @@ services:
       DB_NAME: defaultdb
       DB_USER: root
       DB_PASSWORD: ""
+
+  angular:
+    build:
+      context: frontend/
+      dockerfile: Dockerfile
+    restart: always
+    container_name: "angular"
+    hostname: "angular"
+    ports:
+      - "4200:4200"
 
   db:
     image: cockroachdb/cockroach:v23.2.0

@@ -38,6 +38,9 @@ func main() {
 	router.Handle("/api/register", http.HandlerFunc(authHandler.Register)).Methods(http.MethodPost)
 	router.Handle("/api/login", http.HandlerFunc(authHandler.Login)).Methods(http.MethodPost)
 
+	// Wrap with CORS middleware
+	handler := withCORS(router)
+
 	// Port
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -46,7 +49,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:         ":" + port,
-		Handler:      router,
+		Handler:      handler,
 		IdleTimeout:  120 * time.Second,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -80,4 +83,21 @@ func mustEnv(k string) string {
 		log.Fatalf("missing env %s", k)
 	}
 	return v
+}
+
+// withCORS dodaje potrebne CORS headere
+func withCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:4200")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		// Ako je preflight request
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

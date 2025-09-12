@@ -1,0 +1,53 @@
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-7 col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <h4 class="mb-3">Registracija</h4>
+
+          <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+          <div *ngIf="success" class="alert alert-success">Uspešna registracija! Sada se možete prijaviti.</div>
+
+          <form (ngSubmit)="onSubmit()" #f="ngForm" novalidate>
+            <div class="row">
+              <div class="mb-3 col-md-6">
+                <label class="form-label">Ime</label>
+                <input class="form-control" name="firstname" [(ngModel)]="model.firstname" required />
+              </div>
+              <div class="mb-3 col-md-6">
+                <label class="form-label">Prezime</label>
+                <input class="form-control" name="lastname" [(ngModel)]="model.lastname" required />
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Korisničko ime</label>
+              <input class="form-control" name="username" [(ngModel)]="model.username" required />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input class="form-control" type="email" name="email" [(ngModel)]="model.email" required />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Lozinka</label>
+              <input class="form-control" type="password" name="password" [(ngModel)]="model.password" minlength="8" required />
+              <div class="form-text">Minimalno 8 karaktera.</div>
+            </div>
+
+            <button class="btn btn-success w-100" [disabled]="loading || f.invalid">
+              {{ loading ? 'Registrujem...' : 'Registruj se' }}
+            </button>
+          </form>
+
+          <hr class="my-4" />
+          <div class="text-center">
+            Već imaš nalog?
+            <a routerLink="/login">Prijavi se</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
