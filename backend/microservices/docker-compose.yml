@@ -45,6 +45,7 @@ services:
       DB_PASSWORD: ""
 
   angular:
+    image: angular_najjaki
     build:
       context: frontend/
       dockerfile: Dockerfile
