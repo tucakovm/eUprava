@@ -1,4 +1,4 @@
-version: "3.9"
+name: "tuckoDGoatLord"
 
 services:
 
@@ -25,7 +25,7 @@ services:
   user_server:
     image: users_service
     build:
-      context: backend/microservices/users-service/
+      context: backend/microservices/users_service/
       dockerfile: Dockerfile
     restart: always
     container_name: "user-server"
@@ -43,9 +43,30 @@ services:
       DB_NAME: defaultdb
       DB_USER: root
       DB_PASSWORD: ""
+  
+  housing_server:
+    image: housing_service
+    build:
+      context: backend/microservices/housing_service/
+      dockerfile: Dockerfile
+    restart: always
+    container_name: "housing-server"
+    hostname: "housing-server"
+    ports:
+      - "8003:8003"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 8003
+      DB_HOST: db
+      DB_PORT: 26257
+      DB_NAME: defaultdb
+      DB_USER: root
+      DB_PASSWORD: ""
 
   angular:
-    image: angular/najjaci
+    image: angular_najjaki
     build:
       context: frontend/
       dockerfile: Dockerfile
@@ -54,7 +75,6 @@ services:
     hostname: "angular"
     ports:
       - "4200:4200"
-    command: ["npx", "ng", "serve", "--host", "0.0.0.0", "--port", "4200", "--poll", "2000"]
 
   db:
     image: cockroachdb/cockroach:v23.2.0
