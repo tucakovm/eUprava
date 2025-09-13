@@ -26,12 +26,6 @@ func main() {
 		log.Fatal("Creating repository error: ", err)
 	}
 
-	////Create tables for DB
-	//err = repository.Migrate()
-	//if err != nil {
-	//	return
-	//}
-
 	//Service Init
 	diningService := service.NewDiningService(repository)
 
