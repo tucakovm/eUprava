@@ -8,7 +8,6 @@ export class AuthService {
   private http = inject(HttpClient);
   private baseUrl = 'http://localhost:8002';
 
-
   register(body: RegisterRequest) {
     return this.http.post<User>(`${this.baseUrl}/api/register`, body)
       .pipe(catchError(this.handle));
@@ -18,8 +17,10 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${this.baseUrl}/api/login`, body)
       .pipe(
         map(res => {
-          localStorage.setItem('token', res.token);
-          localStorage.setItem('user', JSON.stringify(res.user));
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('token', res.token);
+            localStorage.setItem('user', JSON.stringify(res.user));
+          }
           return res;
         }),
         catchError(this.handle)
@@ -27,11 +28,14 @@ export class AuthService {
   }
 
   logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
   }
 
   get token(): string | null {
+    if (typeof window === 'undefined') return null;
     return localStorage.getItem('token');
   }
 

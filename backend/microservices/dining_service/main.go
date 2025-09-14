@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
@@ -20,22 +21,27 @@ func main() {
 
 	router := mux.NewRouter()
 
-	//Repository Init
+	// Repository Init
 	repository, err := repo.NewDiningRepo()
 	if err != nil {
 		log.Fatal("Creating repository error: ", err)
 	}
 
-	//Service Init
+	// Service Init
 	diningService := service.NewDiningService(repository)
 
-	//Handler Init
+	// Handler Init
 	diningHandler := handler.NewDiningHandler(*diningService)
 
-	quit := make(chan os.Signal)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	// Rute
+	router.Handle("/api/canteens/", http.HandlerFunc(diningHandler.GetAllCanteens)).Methods(http.MethodGet)
 
-	router.Handle("/api/canteen/", http.HandlerFunc(diningHandler.GetAllCanteens)).Methods(http.MethodGet)
+	// Omogućavanje CORS-a samo za frontend
+	corsObj := handlers.CORS(
+		handlers.AllowedOrigins([]string{"http://localhost:4200"}), // Angular frontend
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+	)
 
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
@@ -44,14 +50,15 @@ func main() {
 
 	server := http.Server{
 		Addr:         ":" + port,
-		Handler:      router,
+		Handler:      corsObj(router), // <-- ovde koristimo CORS middleware
 		IdleTimeout:  120 * time.Second,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 
+	// Start server u go rutini
 	go func() {
-		log.Println("server_starting")
+		log.Println("server_starting on :" + port)
 		if err := server.ListenAndServe(); err != nil {
 			if err != http.ErrServerClosed {
 				log.Fatal(err)
@@ -59,10 +66,12 @@ func main() {
 		}
 	}()
 
+	// Graceful shutdown
+	quit := make(chan os.Signal)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
 	log.Println("service_shutting_down")
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
