@@ -5,6 +5,7 @@ import (
 	"dining/domain"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
@@ -15,7 +16,6 @@ type DiningRepo struct {
 }
 
 func NewDiningRepo() (*DiningRepo, error) {
-
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
 	dbName := os.Getenv("DB_NAME")
@@ -46,6 +46,11 @@ func NewDiningRepo() (*DiningRepo, error) {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
+	// Dodavanje test kantina
+	if err := repo.SeedCanteens(); err != nil {
+		return nil, fmt.Errorf("seeding cantines failed: %w", err)
+	}
+
 	return repo, nil
 }
 
@@ -53,35 +58,38 @@ func (r *DiningRepo) Migrate() error {
 	queries := []string{
 		// Canteens table
 		`CREATE TABLE IF NOT EXISTS canteens (
-			id STRING PRIMARY KEY,
-			name STRING NOT NULL,
-			address STRING NOT NULL,
+			id UUID PRIMARY KEY,
+			name TEXT NOT NULL,
+			address TEXT NOT NULL,
 			open_at TIMESTAMP NOT NULL,
 			close_at TIMESTAMP NOT NULL
 		);`,
 
+		// Dodaj UNIQUE index na name da ON CONFLICT radi
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_canteens_name ON canteens(name);`,
+
 		// Meals table
 		`CREATE TABLE IF NOT EXISTS meals (
-			id STRING PRIMARY KEY,
-			name STRING NOT NULL,
-			description STRING
+			id UUID PRIMARY KEY,
+			name TEXT NOT NULL,
+			description TEXT
 		);`,
 
 		// Menus table
 		`CREATE TABLE IF NOT EXISTS menus (
-			id STRING PRIMARY KEY,
-			name STRING NOT NULL,
-			canteen_id STRING REFERENCES canteens(id) ON DELETE CASCADE,
-			weekday STRING NOT NULL,
-			breakfast_id STRING REFERENCES meals(id) ON DELETE SET NULL,
-			lunch_id STRING REFERENCES meals(id) ON DELETE SET NULL,
-			dinner_id STRING REFERENCES meals(id) ON DELETE SET NULL
+			id UUID PRIMARY KEY,
+			name TEXT NOT NULL,
+			canteen_id UUID REFERENCES canteens(id) ON DELETE CASCADE,
+			weekday TEXT NOT NULL,
+			breakfast_id UUID REFERENCES meals(id) ON DELETE SET NULL,
+			lunch_id UUID REFERENCES meals(id) ON DELETE SET NULL,
+			dinner_id UUID REFERENCES meals(id) ON DELETE SET NULL
 		);`,
 
-		//Reviews table
+		// Menu reviews table
 		`CREATE TABLE IF NOT EXISTS menu_reviews (
-			id STRING PRIMARY KEY,
-			menu_id STRING REFERENCES menus(id) ON DELETE CASCADE,
+			id UUID PRIMARY KEY,
+			menu_id UUID REFERENCES menus(id) ON DELETE CASCADE,
 			breakfast_review INT DEFAULT 0,
 			lunch_review INT DEFAULT 0,
 			dinner_review INT DEFAULT 0
@@ -93,6 +101,40 @@ func (r *DiningRepo) Migrate() error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (r *DiningRepo) SeedCanteens() error {
+	layout := "2006-01-02 15:04"
+	today := time.Now().Format("2006-01-02") // danasnji datum
+
+	open1, _ := time.Parse(layout, today+" 08:00")
+	close1, _ := time.Parse(layout, today+" 16:00")
+
+	open2, _ := time.Parse(layout, today+" 09:00")
+	close2, _ := time.Parse(layout, today+" 17:00")
+
+	open3, _ := time.Parse(layout, today+" 10:00")
+	close3, _ := time.Parse(layout, today+" 18:00")
+
+	testCanteens := []domain.Canteen{
+		{Id: uuid.New(), Name: "Canteen A", Address: "Street 1", OpenAt: open1, CloseAt: close1},
+		{Id: uuid.New(), Name: "Canteen B", Address: "Street 2", OpenAt: open2, CloseAt: close2},
+		{Id: uuid.New(), Name: "Canteen C", Address: "Street 3", OpenAt: open3, CloseAt: close3},
+	}
+
+	for _, c := range testCanteens {
+		_, err := r.DB.Exec(
+			`INSERT INTO canteens (id, name, address, open_at, close_at)
+			 VALUES ($1, $2, $3, $4, $5)
+			 ON CONFLICT (name) DO NOTHING`,
+			c.Id, c.Name, c.Address, c.OpenAt, c.CloseAt,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

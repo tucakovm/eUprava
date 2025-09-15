@@ -29,7 +29,7 @@ export class Login {
     this.auth.login(this.model).subscribe({
       next: () => {
         this.loading = false;
-        this.router.navigateByUrl('/'); // posle logina na home
+        this.router.navigateByUrl('/home'); // posle logina na home
       },
       error: (e) => {
         this.loading = false;
