@@ -34,6 +34,7 @@ func main() {
 		repository.NewStudentRepo(),
 		repository.NewRecRepo(),
 		repository.NewKvarRepo(),
+		repository.NewStudentskaKarticaRepo(), // NOVO: repo za studentske kartice
 	)
 
 	// === Handler init (housing) ===
@@ -44,10 +45,16 @@ func main() {
 	router.Handle("/api/housing/students", http.HandlerFunc(hh.CreateStudent)).Methods(http.MethodPost)
 	router.Handle("/api/housing/students/release", http.HandlerFunc(hh.ReleaseStudentRoom)).Methods(http.MethodPost)
 
+	// Studentska kartica (NOVO)
+	router.Handle("/api/housing/students/cards", http.HandlerFunc(hh.CreateStudentCardIfMissing)).Methods(http.MethodPost) // create-if-missing
+	router.Handle("/api/housing/students/cards", http.HandlerFunc(hh.GetStudentCard)).Methods(http.MethodGet)              // get by studentId (query param)
+	router.Handle("/api/housing/students/cards/balance", http.HandlerFunc(hh.UpdateStudentCardBalance)).Methods(http.MethodPost)
+
 	// Rooms
 	router.Handle("/api/housing/rooms", http.HandlerFunc(hh.GetRoom)).Methods(http.MethodGet)
 	router.Handle("/api/housing/rooms/detail", http.HandlerFunc(hh.GetRoomDetail)).Methods(http.MethodGet)
 	router.Handle("/api/housing/rooms/assign", http.HandlerFunc(hh.AssignStudentToRoom)).Methods(http.MethodPost)
+	router.Handle("/api/housing/rooms/free", http.HandlerFunc(hh.ListFreeRooms)).Methods(http.MethodGet) // NOVO: slobodne sobe
 
 	// Reviews & Faults
 	router.Handle("/api/housing/rooms/reviews", http.HandlerFunc(hh.AddRoomReview)).Methods(http.MethodPost)

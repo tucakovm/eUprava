@@ -21,10 +21,19 @@ type Services struct {
 	Student repository.StudentRepository
 	Rec     repository.RecenzijaRepository
 	Kvar    repository.KvarRepository
+	// Novo: repo za studentske kartice
+	Kartica repository.StudentskaKarticaRepository
 }
 
-func New(db *sql.DB, dom repository.DomRepository, soba repository.SobaRepository,
-	student repository.StudentRepository, rec repository.RecenzijaRepository, kvar repository.KvarRepository) *Services {
+func New(
+	db *sql.DB,
+	dom repository.DomRepository,
+	soba repository.SobaRepository,
+	student repository.StudentRepository,
+	rec repository.RecenzijaRepository,
+	kvar repository.KvarRepository,
+	kartica repository.StudentskaKarticaRepository, // novo
+) *Services {
 	return &Services{
 		DB:      db,
 		Dom:     dom,
@@ -32,6 +41,7 @@ func New(db *sql.DB, dom repository.DomRepository, soba repository.SobaRepositor
 		Student: student,
 		Rec:     rec,
 		Kvar:    kvar,
+		Kartica: kartica, // novo
 	}
 }
 
@@ -40,9 +50,7 @@ func ctxTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(ctx, defaultTimeout)
 }
 
-/* =======================
-   Studentske operacije
-   ======================= */
+/* ======================= Studentske operacije ======================= */
 
 // CreateStudent kreira studenta bez dodele sobe (SobaID = nil).
 func (s *Services) CreateStudent(ctx context.Context, ime, prezime string) (domain.Student, error) {
@@ -108,6 +116,7 @@ func (s *Services) UpisiStudentaUSobu(ctx context.Context, domID uuid.UUID, broj
 	if err = tx.Commit(); err != nil {
 		return domain.Student{}, err
 	}
+
 	st.SobaID = &soba.ID
 	return st, nil
 }
@@ -142,13 +151,10 @@ func (s *Services) OslobodiSobu(ctx context.Context, studentID uuid.UUID) (err e
 	if err = s.Soba.SetSlobodna(ctx, tx, *st.SobaID, true); err != nil {
 		return err
 	}
-
 	return tx.Commit()
 }
 
-/* =======================
-   Recenzije
-   ======================= */
+/* ======================= Recenzije ======================= */
 
 func (s *Services) DodajRecenziju(ctx context.Context, sobaID, autorID uuid.UUID, ocena int, komentar *string) (domain.RecenzijaSobe, error) {
 	ctx, cancel := ctxTimeout(ctx)
@@ -167,9 +173,7 @@ func (s *Services) DodajRecenziju(ctx context.Context, sobaID, autorID uuid.UUID
 	return r, nil
 }
 
-/* =======================
-   Kvarovi
-   ======================= */
+/* ======================= Kvarovi ======================= */
 
 func (s *Services) PrijaviKvar(ctx context.Context, sobaID, prijavioID uuid.UUID, opis string) (domain.Kvar, error) {
 	ctx, cancel := ctxTimeout(ctx)
@@ -194,9 +198,7 @@ func (s *Services) PromeniStatusKvara(ctx context.Context, kvarID uuid.UUID, sta
 	return s.Kvar.UpdateStatus(ctx, s.DB, kvarID, status)
 }
 
-/* =======================
-   Sobe / DTO-i
-   ======================= */
+/* ======================= Sobe / DTO-i ======================= */
 
 // GetSoba vraća osnovne podatke sobe.
 func (s *Services) GetSoba(ctx context.Context, sobaID uuid.UUID) (domain.Soba, error) {
@@ -235,4 +237,37 @@ func (s *Services) GetSobaDetail(ctx context.Context, sobaID uuid.UUID) (domain.
 	soba.Recenzije = recs
 	soba.Kvarovi = kvars
 	return soba, nil
+}
+
+// KreirajStudentskuKarticuAkoNema: kreira studentsku karticu za datog studenta ako ne postoji,
+// u suprotnom vrati postojeću.
+func (s *Services) KreirajStudentskuKarticuAkoNema(ctx context.Context, studentID uuid.UUID) (domain.StudentskaKartica, error) {
+	ctx, cancel := ctxTimeout(ctx)
+	defer cancel()
+
+	return s.Kartica.CreateIfNotExists(ctx, s.DB, studentID)
+}
+
+// (opciono) Može zatrebati i direktno čitanje kartice po studentu
+func (s *Services) GetStudentskaKarticaByStudent(ctx context.Context, studentID uuid.UUID) (domain.StudentskaKartica, error) {
+	ctx, cancel := ctxTimeout(ctx)
+	defer cancel()
+
+	return s.Kartica.GetByStudentID(ctx, s.DB, studentID)
+}
+
+// (opciono) Ažuriranje stanja (pozitivno ili negativno)
+func (s *Services) AzurirajStanjeStudentskeKartice(ctx context.Context, studentID uuid.UUID, delta float64) (domain.StudentskaKartica, error) {
+	ctx, cancel := ctxTimeout(ctx)
+	defer cancel()
+
+	return s.Kartica.UpdateStanje(ctx, s.DB, studentID, delta)
+}
+
+// ListSlobodneSobe vraća sve slobodne sobe u okviru zadatog doma.
+func (s *Services) ListSlobodneSobe(ctx context.Context, domID uuid.UUID) ([]domain.Soba, error) {
+	ctx, cancel := ctxTimeout(ctx)
+	defer cancel()
+
+	return s.Soba.ListSlobodne(ctx, s.DB, domID)
 }

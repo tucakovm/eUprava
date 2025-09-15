@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"os"
 
-	_ "github.com/lib/pq" // driver za sql.Open("postgres", ...)
-	"github.com/google/uuid"
 	"housing/domain"
+
+	"github.com/google/uuid"
+	_ "github.com/lib/pq" // driver za sql.Open("postgres", ...)
 )
 
 type HousingRepo struct {
@@ -40,7 +41,7 @@ func NewHousingRepo() (*HousingRepo, error) {
 		return nil, err
 	}
 
-	repo:= &HousingRepo{DB: db}	
+	repo := &HousingRepo{DB: db}
 	if err := repo.Migrate(); err != nil {
 		return nil, err
 	}
@@ -93,6 +94,13 @@ func (dr *HousingRepo) Migrate() error {
 		);`,
 		`CREATE INDEX IF NOT EXISTS kvar_soba_idx ON kvar(soba_id);`,
 		`CREATE INDEX IF NOT EXISTS kvar_prijavio_idx ON kvar(prijavio_id);`,
+
+		`CREATE TABLE IF NOT EXISTS studentska_kartica (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		stanje DECIMAL NOT NULL DEFAULT 0,
+		student_id UUID NOT NULL UNIQUE REFERENCES student(id) ON DELETE CASCADE
+	);`,
+		`CREATE INDEX IF NOT EXISTS studentska_kartica_student_idx ON studentska_kartica(student_id);`,
 	}
 
 	tx, err := dr.DB.Begin()
@@ -107,7 +115,6 @@ func (dr *HousingRepo) Migrate() error {
 	}
 	return tx.Commit()
 }
-
 
 type DBTX interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
@@ -126,6 +133,7 @@ type SobaRepository interface {
 	GetByBroj(ctx context.Context, q DBTX, domID uuid.UUID, broj string, forUpdate bool) (domain.Soba, error)
 	Create(ctx context.Context, q DBTX, s *domain.Soba) error
 	SetSlobodna(ctx context.Context, q DBTX, sobaID uuid.UUID, slobodna bool) error
+	ListSlobodne(ctx context.Context, q DBTX, domID uuid.UUID) ([]domain.Soba, error)
 }
 
 // Student
@@ -148,6 +156,16 @@ type KvarRepository interface {
 	Create(ctx context.Context, q DBTX, k *domain.Kvar) error
 	UpdateStatus(ctx context.Context, q DBTX, kvarID uuid.UUID, status domain.StatusKvara) error
 	ListBySoba(ctx context.Context, q DBTX, sobaID uuid.UUID) ([]domain.Kvar, error)
+}
+
+// SK
+type StudentskaKarticaRepository interface {
+	// Kreira karticu ako ne postoji i vraća stanje
+	CreateIfNotExists(ctx context.Context, q DBTX, studentID uuid.UUID) (domain.StudentskaKartica, error)
+	// Dovlači karticu po studentu
+	GetByStudentID(ctx context.Context, q DBTX, studentID uuid.UUID) (domain.StudentskaKartica, error)
+	// Povećava/smanjuje stanje (delta može biti negativna) i vraća novo stanje
+	UpdateStanje(ctx context.Context, q DBTX, studentID uuid.UUID, delta float64) (domain.StudentskaKartica, error)
 }
 
 /* =========================================================
@@ -204,6 +222,28 @@ func (r *sobaRepo) Create(ctx context.Context, q DBTX, s *domain.Soba) error {
 func (r *sobaRepo) SetSlobodna(ctx context.Context, q DBTX, sobaID uuid.UUID, slobodna bool) error {
 	_, err := q.ExecContext(ctx, `UPDATE soba SET slobodna = $1 WHERE id = $2`, slobodna, sobaID)
 	return err
+}
+
+func (r *sobaRepo) ListSlobodne(ctx context.Context, q DBTX, domID uuid.UUID) ([]domain.Soba, error) {
+	rows, err := q.QueryContext(ctx,
+		`SELECT id, broj, slobodna, dom_id
+		   FROM soba
+		  WHERE dom_id = $1 AND slobodna = true
+		  ORDER BY broj`, domID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []domain.Soba
+	for rows.Next() {
+		var s domain.Soba
+		if err := rows.Scan(&s.ID, &s.Broj, &s.Slobodna, &s.DomID); err != nil {
+			return nil, err
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
 }
 
 // ------- Student -------
@@ -341,4 +381,48 @@ func (r *kvarRepo) ListBySoba(ctx context.Context, q DBTX, sobaID uuid.UUID) ([]
 		out = append(out, k)
 	}
 	return out, rows.Err()
+}
+
+// ------- Studentska kartica -------
+type karticaRepo struct{}
+
+func NewStudentskaKarticaRepo() StudentskaKarticaRepository { return &karticaRepo{} }
+
+func (r *karticaRepo) GetByStudentID(ctx context.Context, q DBTX, studentID uuid.UUID) (domain.StudentskaKartica, error) {
+	var k domain.StudentskaKartica
+	err := q.QueryRowContext(ctx,
+		`SELECT id, stanje, student_id
+		   FROM studentska_kartica
+		  WHERE student_id = $1`, studentID).
+		Scan(&k.ID, &k.Stanje, &k.StudentID)
+	return k, err
+}
+
+func (r *karticaRepo) CreateIfNotExists(ctx context.Context, q DBTX, studentID uuid.UUID) (domain.StudentskaKartica, error) {
+	// Pokušaj da ubaciš; ako već postoji, DO NOTHING i onda SELECT
+	var k domain.StudentskaKartica
+	err := q.QueryRowContext(ctx,
+		`INSERT INTO studentska_kartica (student_id)
+		 VALUES ($1)
+		 ON CONFLICT (student_id) DO NOTHING
+		 RETURNING id, stanje, student_id`, studentID).
+		Scan(&k.ID, &k.Stanje, &k.StudentID)
+
+	if err == sql.ErrNoRows {
+		// Kartica već postoji — pročitaj je
+		return r.GetByStudentID(ctx, q, studentID)
+	}
+	return k, err
+}
+
+func (r *karticaRepo) UpdateStanje(ctx context.Context, q DBTX, studentID uuid.UUID, delta float64) (domain.StudentskaKartica, error) {
+	var k domain.StudentskaKartica
+	err := q.QueryRowContext(ctx,
+		`UPDATE studentska_kartica
+		    SET stanje = stanje + $1
+		  WHERE student_id = $2
+		  RETURNING id, stanje, student_id`,
+		delta, studentID).
+		Scan(&k.ID, &k.Stanje, &k.StudentID)
+	return k, err
 }
