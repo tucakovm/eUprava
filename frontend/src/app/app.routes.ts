@@ -3,6 +3,13 @@ import { Login } from './login/login';
 import { Register } from './register/register';
 import { HomeComponent } from './home/home';
 import { CanteensComponent } from './canteens/canteens';
+import { Dashboard } from './features/housing/pages/dashboard/dashboard';
+import { StudentCards } from './features/housing/pages/student-cards/student-cards';
+import { Rooms } from './features/housing/pages/rooms/rooms';
+import { Students } from './features/housing/pages/students/students';
+import { RoomDetail } from './features/housing/pages/room-detail/room-detail';
+import { Reviews } from './features/housing/pages/reviews/reviews';
+import { Faults } from './features/housing/pages/faults/faults';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -11,5 +18,13 @@ export const routes: Routes = [
   { path: 'home', component: HomeComponent },
   {
     path: 'canteens',component: CanteensComponent},
-  { path: '**', redirectTo: 'login' }
+    { path: 'dashboard', component: Dashboard },
+  { path: 'students', component: Students },
+  { path: 'rooms', component: Rooms },
+  { path: 'rooms/:id', component: RoomDetail },
+  { path: 'cards', component: StudentCards },
+  { path: 'reviews', component: Reviews },
+  { path: 'faults', component: Faults },
+  
+  { path: '**', redirectTo: 'login' },
 ];
