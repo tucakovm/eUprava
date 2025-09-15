@@ -14,6 +14,13 @@ type Canteen struct {
 	CloseAt time.Time `json:"close_at"`
 }
 
+type CanteenDTO struct {
+	Name    string `json:"name"`
+	Address string `json:"address"`
+	OpenAt  string `json:"open_at"` // dolazi iz frontenda kao "HH:mm"
+	CloseAt string `json:"close_at"`
+}
+
 type Canteens []Canteen
 
 type Meal struct {
@@ -37,6 +44,15 @@ const (
 
 type Menu struct {
 	Id        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	CanteenId uuid.UUID `json:"canteen_id"`
+	Weekday   Weekday   `json:"weekday"`
+	Breakfast Meal      `json:"breakfast"`
+	Lunch     Meal      `json:"lunch"`
+	Dinner    Meal      `json:"dinner"`
+}
+
+type MenuDTO struct {
 	Name      string    `json:"name"`
 	CanteenId uuid.UUID `json:"canteen_id"`
 	Weekday   Weekday   `json:"weekday"`
@@ -69,4 +85,5 @@ type DiningRepository interface {
 	GetMenuByID(id string) (*Menu, error)
 	GetMealByID(id string) (*Meal, error)
 	GetCanteenByID(id string) (*Canteen, error)
+	GetMenusByCanteenID(canteenID string) ([]*Menu, error)
 }

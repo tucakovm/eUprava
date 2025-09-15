@@ -65,14 +65,14 @@ func (r *DiningRepo) Migrate() error {
 			close_at TIMESTAMP NOT NULL
 		);`,
 
-		// Dodaj UNIQUE index na name da ON CONFLICT radi
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_canteens_name ON canteens(name);`,
 
 		// Meals table
 		`CREATE TABLE IF NOT EXISTS meals (
-			id UUID PRIMARY KEY,
-			name TEXT NOT NULL,
-			description TEXT
+		id UUID PRIMARY KEY,
+		name TEXT NOT NULL,
+		description TEXT,
+		price NUMERIC NOT NULL DEFAULT 0
 		);`,
 
 		// Menus table
@@ -106,7 +106,7 @@ func (r *DiningRepo) Migrate() error {
 
 func (r *DiningRepo) SeedCanteens() error {
 	layout := "2006-01-02 15:04"
-	today := time.Now().Format("2006-01-02") // danasnji datum
+	today := time.Now().Format("2006-01-02")
 
 	open1, _ := time.Parse(layout, today+" 08:00")
 	close1, _ := time.Parse(layout, today+" 16:00")
@@ -118,9 +118,9 @@ func (r *DiningRepo) SeedCanteens() error {
 	close3, _ := time.Parse(layout, today+" 18:00")
 
 	testCanteens := []domain.Canteen{
-		{Id: uuid.New(), Name: "Canteen A", Address: "Street 1", OpenAt: open1, CloseAt: close1},
-		{Id: uuid.New(), Name: "Canteen B", Address: "Street 2", OpenAt: open2, CloseAt: close2},
-		{Id: uuid.New(), Name: "Canteen C", Address: "Street 3", OpenAt: open3, CloseAt: close3},
+		{Id: uuid.MustParse("3fd5f339-8d75-4eee-81c9-25e1fd967faa"), Name: "Canteen A", Address: "Street 1", OpenAt: open1, CloseAt: close1},
+		{Id: uuid.MustParse("b2c4d6e8-1234-5678-9abc-def012345678"), Name: "Canteen B", Address: "Street 2", OpenAt: open2, CloseAt: close2},
+		{Id: uuid.MustParse("f9e8d7c6-abcd-1234-5678-9abc12345678"), Name: "Canteen C", Address: "Street 3", OpenAt: open3, CloseAt: close3},
 	}
 
 	for _, c := range testCanteens {
@@ -183,8 +183,10 @@ func (dr *DiningRepo) DeleteCanteenByID(id string) error {
 
 func (r *DiningRepo) CreateMeal(m *domain.Meal) error {
 	m.Id = uuid.New()
-	_, err := r.DB.Exec(`INSERT INTO meals (id, name, description) VALUES ($1, $2, $3)`,
-		m.Id, m.Name, m.Description)
+	_, err := r.DB.Exec(
+		`INSERT INTO meals (id, name, description, price) VALUES ($1, $2, $3, $4)`,
+		m.Id, m.Name, m.Description, m.Price,
+	)
 	return err
 }
 
@@ -207,13 +209,34 @@ func (r *DiningRepo) DeleteMealByID(id string) error {
 }
 
 func (r *DiningRepo) CreateMenu(menu *domain.Menu) error {
+	// 1. Kreiraj breakfast meal
+	if err := r.CreateMeal(&menu.Breakfast); err != nil {
+		return fmt.Errorf("failed to create breakfast meal: %w", err)
+	}
+
+	// 2. Kreiraj lunch meal
+	if err := r.CreateMeal(&menu.Lunch); err != nil {
+		return fmt.Errorf("failed to create lunch meal: %w", err)
+	}
+
+	// 3. Kreiraj dinner meal
+	if err := r.CreateMeal(&menu.Dinner); err != nil {
+		return fmt.Errorf("failed to create dinner meal: %w", err)
+	}
+
+	// 4. Kreiraj sam meni
 	menu.Id = uuid.New()
 	_, err := r.DB.Exec(
-		`INSERT INTO menus (id, name, canteen_id, weekday, breakfast_id, lunch_id, dinner_id)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		menu.Id, menu.Name, menu.CanteenId, menu.Weekday, menu.Breakfast.Id, menu.Lunch.Id, menu.Dinner.Id,
+		`INSERT INTO menus (id, name, canteen_id, weekday, breakfast_id, lunch_id, dinner_id) 
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		menu.Id, menu.Name, menu.CanteenId, menu.Weekday,
+		menu.Breakfast.Id, menu.Lunch.Id, menu.Dinner.Id,
 	)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to create menu: %w", err)
+	}
+
+	return nil
 }
 
 func (r *DiningRepo) UpdateMenu(menu *domain.Menu) error {
@@ -317,4 +340,53 @@ func (r *DiningRepo) GetMenuReviewByID(id string) (*domain.MenuReview, error) {
 		return nil, err
 	}
 	return &mr, nil
+}
+
+func (r *DiningRepo) GetMenusByCanteenID(canteenID string) ([]*domain.Menu, error) {
+	rows, err := r.DB.Query(`
+		SELECT 
+			m.id, m.name, m.canteen_id, m.weekday,
+			b.id, b.name, b.description, b.price,
+			l.id, l.name, l.description, l.price,
+			d.id, d.name, d.description, d.price
+		FROM menus m
+		LEFT JOIN meals b ON m.breakfast_id = b.id
+		LEFT JOIN meals l ON m.lunch_id = l.id
+		LEFT JOIN meals d ON m.dinner_id = d.id
+		WHERE m.canteen_id = $1
+		ORDER BY m.weekday;
+	`, canteenID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var menus []*domain.Menu
+
+	for rows.Next() {
+		var menu domain.Menu
+		var breakfast, lunch, dinner domain.Meal
+
+		err := rows.Scan(
+			&menu.Id, &menu.Name, &menu.CanteenId, &menu.Weekday,
+			&breakfast.Id, &breakfast.Name, &breakfast.Description, &breakfast.Price,
+			&lunch.Id, &lunch.Name, &lunch.Description, &lunch.Price,
+			&dinner.Id, &dinner.Name, &dinner.Description, &dinner.Price,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		menu.Breakfast = breakfast
+		menu.Lunch = lunch
+		menu.Dinner = dinner
+
+		menus = append(menus, &menu)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return menus, nil
 }

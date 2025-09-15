@@ -6,7 +6,7 @@ export interface CanteenDto {
   id: string;
   name: string;
   address: string;
-  open_at: string;  // dolazi sa backend-a kao string
+  open_at: string;
   close_at: string;
 }
 
@@ -20,4 +20,18 @@ export class CanteenService {
   getAll(): Observable<CanteenDto[]> {
     return this.http.get<CanteenDto[]>(this.baseUrl);
   }
+
+  getOne(id: string): Observable<CanteenDto> {
+    return this.http.get<CanteenDto>(`${this.baseUrl}${id}`);
+  }
+
+  delete(id: string) {
+    return this.http.delete(`${this.baseUrl}${id}`);
+  }
+
+  create(canteen: CanteenDto) {
+    return this.http.post<CanteenDto>(`${this.baseUrl}`, canteen);
+  }
+
+
 }

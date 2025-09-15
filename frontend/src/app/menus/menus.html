@@ -1,0 +1,234 @@
+<div class="container py-5">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Menus</h3>
+    <button type="button" class="btn btn-success" (click)="openMenuForm()">Create Menu</button>
+  </div>
+
+  <!-- Modal Form -->
+  <div class="modal" [class.show]="isMenuFormOpen" tabindex="-1" [style.display]="isMenuFormOpen ? 'block' : 'none'">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <form #menuForm="ngForm" (ngSubmit)="createMenu()" novalidate>
+
+          <div class="modal-header">
+            <h5 class="modal-title">Create New Menu</h5>
+            <button type="button" class="btn-close" (click)="closeMenuForm()"></button>
+          </div>
+
+          <div class="modal-body">
+            <!-- Hidden canteen id (set it in openMenuForm) -->
+            <input type="hidden" [(ngModel)]="newMenu.canteen_id" name="canteen_id">
+
+            <!-- Menu name and weekday -->
+            <div class="row g-3">
+              <div class="col-md-8">
+                <label class="form-label">Menu Name</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Menu Name"
+                  [(ngModel)]="newMenu.name"
+                  name="name"
+                  required
+                  #nameCtrl="ngModel">
+                <div *ngIf="nameCtrl.invalid && nameCtrl.touched" class="text-danger small mt-1">
+                  Menu name is required.
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label">Weekday</label>
+                <select
+                  class="form-select"
+                  [(ngModel)]="newMenu.weekday"
+                  name="weekday"
+                  required
+                  #weekdayCtrl="ngModel">
+                  <option [ngValue]="null" disabled selected>Choose day</option>
+                  <option *ngFor="let day of weekdays" [ngValue]="day">{{ day }}</option>
+                </select>
+                <div *ngIf="weekdayCtrl.invalid && weekdayCtrl.touched" class="text-danger small mt-1">
+                  Weekday is required.
+                </div>
+              </div>
+            </div>
+
+            <hr class="my-3">
+
+            <!-- Breakfast -->
+            <div class="mb-3">
+              <h6>Breakfast</h6>
+              <div class="row g-2">
+                <div class="col-md-5">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Breakfast name"
+                    [(ngModel)]="newMenu.breakfast.name"
+                    name="breakfastName"
+                    required
+                    #bfName="ngModel">
+                  <div *ngIf="bfName.invalid && bfName.touched" class="text-danger small mt-1">
+                    Breakfast name is required.
+                  </div>
+                </div>
+                <div class="col-md-5">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Breakfast description"
+                    [(ngModel)]="newMenu.breakfast.description"
+                    name="breakfastDesc"
+                    required
+                    #bfDesc="ngModel">
+                  <div *ngIf="bfDesc.invalid && bfDesc.touched" class="text-danger small mt-1">
+                    Breakfast description is required.
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <input
+                    type="number"
+                    class="form-control"
+                    placeholder="Price"
+                    [(ngModel)]="newMenu.breakfast.price"
+                    name="breakfastPrice"
+                    required
+                    min="0"
+                    step="0.01"
+                    #bfPrice="ngModel">
+                  <div *ngIf="bfPrice.invalid && bfPrice.touched" class="text-danger small mt-1">
+                    Enter valid price.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Lunch -->
+            <div class="mb-3">
+              <h6>Lunch</h6>
+              <div class="row g-2">
+                <div class="col-md-5">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Lunch name"
+                    [(ngModel)]="newMenu.lunch.name"
+                    name="lunchName"
+                    required
+                    #lName="ngModel">
+                  <div *ngIf="lName.invalid && lName.touched" class="text-danger small mt-1">
+                    Lunch name is required.
+                  </div>
+                </div>
+                <div class="col-md-5">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Lunch description"
+                    [(ngModel)]="newMenu.lunch.description"
+                    name="lunchDesc"
+                    required
+                    #lDesc="ngModel">
+                  <div *ngIf="lDesc.invalid && lDesc.touched" class="text-danger small mt-1">
+                    Lunch description is required.
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <input
+                    type="number"
+                    class="form-control"
+                    placeholder="Price"
+                    [(ngModel)]="newMenu.lunch.price"
+                    name="lunchPrice"
+                    required
+                    min="0"
+                    step="0.01"
+                    #lPrice="ngModel">
+                  <div *ngIf="lPrice.invalid && lPrice.touched" class="text-danger small mt-1">
+                    Enter valid price.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dinner -->
+            <div class="mb-3">
+              <h6>Dinner</h6>
+              <div class="row g-2">
+                <div class="col-md-5">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Dinner name"
+                    [(ngModel)]="newMenu.dinner.name"
+                    name="dinnerName"
+                    required
+                    #dName="ngModel">
+                  <div *ngIf="dName.invalid && dName.touched" class="text-danger small mt-1">
+                    Dinner name is required.
+                  </div>
+                </div>
+                <div class="col-md-5">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Dinner description"
+                    [(ngModel)]="newMenu.dinner.description"
+                    name="dinnerDesc"
+                    required
+                    #dDesc="ngModel">
+                  <div *ngIf="dDesc.invalid && dDesc.touched" class="text-danger small mt-1">
+                    Dinner description is required.
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <input
+                    type="number"
+                    class="form-control"
+                    placeholder="Price"
+                    [(ngModel)]="newMenu.dinner.price"
+                    name="dinnerPrice"
+                    required
+                    min="0"
+                    step="0.01"
+                    #dPrice="ngModel">
+                  <div *ngIf="dPrice.invalid && dPrice.touched" class="text-danger small mt-1">
+                    Enter valid price.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div> <!-- modal-body -->
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeMenuForm()">Cancel</button>
+            <button type="submit" class="btn btn-success" [disabled]="menuForm.invalid">Create</button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista menija -->
+  <div class="row g-4 mt-3">
+    <div *ngFor="let menu of menus" class="col-12 col-md-6 col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">{{ menu.name }}</h5>
+          <p class="card-text"><strong>Weekday:</strong> {{ menu.weekday }}</p>
+          <p class="card-text"><strong>Breakfast:</strong> {{ menu.breakfast.name }} - {{ menu.breakfast.price | currency }}</p>
+          <p class="card-text"><strong>Lunch:</strong> {{ menu.lunch.name }} - {{ menu.lunch.price | currency }}</p>
+          <p class="card-text"><strong>Dinner:</strong> {{ menu.dinner.name }} - {{ menu.dinner.price | currency }}</p>
+
+          <div class="mt-auto d-flex gap-2">
+            <button type="button" class="btn btn-primary flex-fill" (click)="viewMenu(menu)">Details</button>
+            <button type="button" class="btn btn-danger flex-fill" (click)="deleteMenu(menu); $event.stopPropagation()">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

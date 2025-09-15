@@ -1,11 +1,11 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container">
-    <a class="navbar-brand" >TUCKO IS D GOATTT</a>
+    <a class="navbar-brand" routerLink="/home">TUCKO IS D GOATTT</a>
 
     <div>
-      <button *ngIf="auth.isAuthenticated" class="btn btn-outline-light me-2" (click)="logout()">Logout</button>
+      <button *ngIf="auth?.isAuthenticated" class="btn btn-outline-light me-2" (click)="logout()">Logout</button>
 
-      <ng-container *ngIf="!auth.isAuthenticated">
+      <ng-container *ngIf="!auth?.isAuthenticated">
         <a class="btn btn-outline-light me-2" routerLink="/login">Login</a>
         <a class="btn btn-primary" routerLink="/register">Register</a>
       </ng-container>
@@ -13,4 +13,6 @@
   </div>
 </nav>
 
-<router-outlet></router-outlet>
+<div class="container mt-4">
+  <router-outlet></router-outlet>
+</div>

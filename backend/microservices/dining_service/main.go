@@ -34,9 +34,14 @@ func main() {
 	diningHandler := handler.NewDiningHandler(*diningService)
 
 	// Rute
-	router.Handle("/api/canteens/", http.HandlerFunc(diningHandler.GetAllCanteens)).Methods(http.MethodGet)
+	router.HandleFunc("/api/canteens/", diningHandler.GetAllCanteens).Methods(http.MethodGet)
+	router.HandleFunc("/api/canteens/{id}", diningHandler.GetCanteen).Methods(http.MethodGet)
+	router.HandleFunc("/api/canteens/{id}", diningHandler.DeleteCanteen).Methods(http.MethodDelete)
+	router.HandleFunc("/api/canteens/", diningHandler.CreateCanteen).Methods(http.MethodPost)
 
-	// Omogućavanje CORS-a samo za frontend
+	router.HandleFunc("/api/menus/{id}", diningHandler.GetMenusByCanteenID).Methods(http.MethodGet)
+	router.HandleFunc("/api/menus/", diningHandler.CreateMenu).Methods(http.MethodPost)
+
 	corsObj := handlers.CORS(
 		handlers.AllowedOrigins([]string{"http://localhost:4200"}), // Angular frontend
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
