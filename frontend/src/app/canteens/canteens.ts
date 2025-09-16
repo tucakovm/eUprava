@@ -2,8 +2,10 @@ import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { CanteenService, CanteenDto } from '../services/canteen.service';
+
 import {Router, RouterModule} from '@angular/router';
 import { FormsModule } from '@angular/forms';
+
 
 // Interfejs sa Date tipovima za frontend
 interface Canteen {

@@ -1,12 +1,13 @@
 package handler
 
 import (
-	"housing/domain"
-	"housing/service"
 	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
+
+	"housing/domain"
+	"housing/service"
 )
 
 type HousingHandler struct {
@@ -28,7 +29,7 @@ func (h *HousingHandler) renderJSON(w http.ResponseWriter, v interface{}) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)
+	_, _ = w.Write(js)
 }
 
 func (h *HousingHandler) badRequest(w http.ResponseWriter, msg string) {
@@ -120,6 +121,91 @@ func (h *HousingHandler) ReleaseStudentRoom(w http.ResponseWriter, r *http.Reque
 	}
 
 	h.renderJSON(w, map[string]string{"status": "ok"})
+}
+
+/* =========================
+   Studentska kartica (NOVO)
+   ========================= */
+
+// POST /students/cards
+// Body: { "studentId": "...uuid..." }
+// Kreira karticu ako ne postoji, inače vraća postojeću
+func (h *HousingHandler) CreateStudentCardIfMissing(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		StudentID string `json:"studentId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		h.badRequest(w, "bad json")
+		return
+	}
+	if in.StudentID == "" {
+		h.badRequest(w, "studentId je obavezan")
+		return
+	}
+	sid, err := uuid.Parse(in.StudentID)
+	if err != nil {
+		h.badRequest(w, "invalid studentId")
+		return
+	}
+
+	card, err := h.service.KreirajStudentskuKarticuAkoNema(r.Context(), sid)
+	if err != nil {
+		http.Error(w, "database exception", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+	h.renderJSON(w, card)
+}
+
+// GET /students/cards?studentId=<uuid>
+// Vraća karticu za datog studenta
+func (h *HousingHandler) GetStudentCard(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("studentId")
+	if idStr == "" {
+		h.badRequest(w, "missing studentId")
+		return
+	}
+	sid, err := uuid.Parse(idStr)
+	if err != nil {
+		h.badRequest(w, "invalid studentId")
+		return
+	}
+
+	card, err := h.service.GetStudentskaKarticaByStudent(r.Context(), sid)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	h.renderJSON(w, card)
+}
+
+// POST /students/cards/balance
+// Body: { "studentId": "...uuid...", "delta": 500.0 }  // pozitivan = dopuna, negativan = zaduženje
+func (h *HousingHandler) UpdateStudentCardBalance(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		StudentID string  `json:"studentId"`
+		Delta     float64 `json:"delta"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		h.badRequest(w, "bad json")
+		return
+	}
+	if in.StudentID == "" {
+		h.badRequest(w, "studentId je obavezan")
+		return
+	}
+	sid, err := uuid.Parse(in.StudentID)
+	if err != nil {
+		h.badRequest(w, "invalid studentId")
+		return
+	}
+
+	card, err := h.service.AzurirajStanjeStudentskeKartice(r.Context(), sid, in.Delta)
+	if err != nil {
+		http.Error(w, "database exception", http.StatusInternalServerError)
+		return
+	}
+	h.renderJSON(w, card)
 }
 
 /* =========================
@@ -283,4 +369,27 @@ func (h *HousingHandler) GetRoomDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.renderJSON(w, room)
+}
+
+// GET /rooms/free?domId=<uuid>
+// Vraća sve slobodne sobe u okviru zadatog doma
+func (h *HousingHandler) ListFreeRooms(w http.ResponseWriter, r *http.Request) {
+	domIDStr := r.URL.Query().Get("domId")
+	if domIDStr == "" {
+		h.badRequest(w, "missing domId")
+		return
+	}
+	domID, err := uuid.Parse(domIDStr)
+	if err != nil {
+		h.badRequest(w, "invalid domId")
+		return
+	}
+
+	rooms, err := h.service.ListSlobodneSobe(r.Context(), domID)
+	if err != nil {
+		http.Error(w, "database exception", http.StatusInternalServerError)
+		return
+	}
+
+	h.renderJSON(w, rooms)
 }

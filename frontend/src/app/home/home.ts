@@ -1,13 +1,18 @@
 import { Component, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink, RouterModule } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router'; // Dodajte ovo
 
+
 @Component({
   selector: 'app-home',
   standalone: true,
+<<<<<<< HEAD
   imports: [CommonModule, RouterModule],
+=======
+  imports: [RouterLink],
+>>>>>>> feature/nezavisne_dom
   templateUrl: './home.html',
 })
 export class HomeComponent {

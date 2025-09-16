@@ -1,0 +1,23 @@
+<div class="card" *ngIf="room">
+  <h3>Soba {{ room.broj }}</h3>
+  <p><strong>ID:</strong> {{ room.id }}</p>
+  <p><strong>Slobodna:</strong> {{ room.slobodna ? 'Da' : 'Ne' }}</p>
+
+  <h4>Studenti</h4>
+  <ul><li *ngFor="let s of room.studenti">{{ s.ime }} {{ s.prezime }} ({{ s.id }})</li></ul>
+
+  <h4>Recenzije</h4>
+  <ul>
+    <li *ngFor="let r of room.recenzije">
+      Ocena: {{ r.ocena }} — {{ r.komentar || 'nema komentara' }}
+    </li>
+  </ul>
+
+  <h4>Kvarovi</h4>
+  <ul>
+    <li *ngFor="let k of room.kvarovi">
+      [{{ k.status }}] {{ k.opis }}
+    </li>
+  </ul>
+</div>
+<div class="card" *ngIf="error">{{ error }}</div>
