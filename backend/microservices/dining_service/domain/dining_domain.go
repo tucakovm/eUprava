@@ -64,9 +64,18 @@ type MenuDTO struct {
 type MenuReview struct {
 	Id              uuid.UUID `json:"id"`
 	MenuId          uuid.UUID `json:"menu_id"`
+	UserId          uuid.UUID `json:"user_id"`
 	BreakfastReview int64     `json:"breakfast_review"`
 	LunchReview     int64     `json:"lunch_review"`
 	DinnerReview    int64     `json:"dinner_review"`
+}
+
+type MenuReviewDTO struct {
+	MenuId          string `json:"menu_id"`
+	UserId          string `json:"user_id"`
+	BreakfastReview int64  `json:"breakfast_review"`
+	LunchReview     int64  `json:"lunch_review"`
+	DinnerReview    int64  `json:"dinner_review"`
 }
 
 type PopularMeal struct {
@@ -80,6 +89,14 @@ type MealHistory struct {
 	MenuId     string    `json:"menu_id"`
 	MenuName   string    `json:"menu_name"`
 	SelectedAt time.Time `json:"selected_at"`
+}
+
+type MealHistoryWithReview struct {
+	Id         uuid.UUID   `json:"id"`
+	MenuId     uuid.UUID   `json:"menu_id"`
+	MenuName   string      `json:"menu_name"`
+	SelectedAt time.Time   `json:"selected_at"`
+	Review     *MenuReview `json:"review,omitempty"`
 }
 
 type DiningRepository interface {
@@ -102,4 +119,6 @@ type DiningRepository interface {
 	DeleteMenuAndMealsByID(id string) error
 	GetPopularMealsByCanteen(canteenId string, limit int) ([]PopularMeal, error)
 	GetMealHistoryByUser(userId string) ([]MealHistory, error)
+	GetMealHistoryWithReviewsByUser(userId string) ([]MealHistoryWithReview, error)
+	UpdateMenuReview(review *MenuReview) error
 }

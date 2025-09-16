@@ -1,0 +1,41 @@
+.rating-stars {
+  display: flex;
+  gap: 2px;
+}
+
+.star {
+  font-size: 1.5rem;
+  color: #ddd;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  user-select: none;
+}
+
+.star:hover {
+  color: #ffc107;
+}
+
+.star.active {
+  color: #ffc107;
+}
+
+.table th, .table td {
+  vertical-align: middle;
+}
+
+.modal-body .rating-stars .star {
+  font-size: 1.8rem;
+}
+
+.modal-body .rating-stars .star:hover,
+.modal-body .rating-stars .star.active {
+  color: #ffc107;
+}
+
+.badge {
+  font-size: 0.875rem;
+}
+
+.text-warning {
+  color: #ffc107 !important;
+}

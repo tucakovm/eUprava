@@ -59,6 +59,10 @@ func NewDiningRepo() (*DiningRepo, error) {
 		fmt.Println("Seeding meal history failed:", err)
 	}
 
+	if err := repo.SeedMenuReviews("550e8400-e29b-41d4-a716-446655440001"); err != nil {
+		fmt.Println("Seeding meal reviews failed:", err)
+	}
+
 	return repo, nil
 }
 
@@ -98,6 +102,7 @@ func (r *DiningRepo) Migrate() error {
 		`CREATE TABLE IF NOT EXISTS menu_reviews (
 			id UUID PRIMARY KEY,
 			menu_id UUID REFERENCES menus(id) ON DELETE CASCADE,
+    		user_id UUID REFERENCES users(id) ON DELETE CASCADE,
 			breakfast_review INT DEFAULT 0,
 			lunch_review INT DEFAULT 0,
 			dinner_review INT DEFAULT 0
@@ -194,6 +199,48 @@ func (r *DiningRepo) SeedMenusForCanteenA() error {
 			if err := r.CreateMenu(&menu); err != nil {
 				return fmt.Errorf("failed to create menu for %s: %w", day, err)
 			}
+		}
+	}
+
+	return nil
+}
+
+func (r *DiningRepo) SeedMenuReviews(userId string) error {
+	// Uzimamo nekoliko postojećih menija iz baze
+	rows, err := r.DB.Query(`SELECT id FROM menus LIMIT 5`)
+	if err != nil {
+		return fmt.Errorf("failed to fetch menus for seeding reviews: %w", err)
+	}
+	defer rows.Close()
+
+	var menuIds []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return err
+		}
+		menuIds = append(menuIds, id)
+	}
+
+	if len(menuIds) == 0 {
+		return fmt.Errorf("no menus found for seeding reviews")
+	}
+
+	// Dodajemo review za svaki meni
+	for i, menuId := range menuIds {
+		reviewId := uuid.New()                // Možeš zakucati fiksni UUID npr: uuid.MustParse("11111111-1111-1111-1111-11111111111" + strconv.Itoa(i))
+		breakfastReview := int64((i % 5) + 1) // ocene od 1 do 5
+		lunchReview := int64(((i + 1) % 5) + 1)
+		dinnerReview := int64(((i + 2) % 5) + 1)
+
+		_, err := r.DB.Exec(
+			`INSERT INTO menu_reviews (id, menu_id, user_id, breakfast_review, lunch_review, dinner_review)
+			 VALUES ($1, $2, $3, $4, $5, $6)
+			 ON CONFLICT (menu_id, user_id) DO NOTHING`,
+			reviewId, menuId, userId, breakfastReview, lunchReview, dinnerReview,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert menu review: %w", err)
 		}
 	}
 
@@ -364,11 +411,29 @@ func (r *DiningRepo) DeleteMenuByID(id string) error {
 func (r *DiningRepo) CreateMenuReview(review *domain.MenuReview) error {
 	review.Id = uuid.New()
 	_, err := r.DB.Exec(
-		`INSERT INTO menu_reviews (id, menu_id, breakfast_review, lunch_review, dinner_review)
-		 VALUES ($1, $2, $3, $4, $5)`,
-		review.Id, review.MenuId, review.BreakfastReview, review.LunchReview, review.DinnerReview,
+		`INSERT INTO menu_reviews (id, menu_id, user_id, breakfast_review, lunch_review, dinner_review)
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		review.Id, review.MenuId, review.UserId, review.BreakfastReview, review.LunchReview, review.DinnerReview,
 	)
 	return err
+}
+
+func (r *DiningRepo) UpdateMenuReview(review *domain.MenuReview) error {
+	result, err := r.DB.Exec(
+		`UPDATE menu_reviews SET breakfast_review=$1, lunch_review=$2, dinner_review=$3
+		 WHERE id=$4`,
+		review.BreakfastReview, review.LunchReview, review.DinnerReview, review.Id,
+	)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("menu review with id %s not found", review.Id)
+	}
+
+	return nil
 }
 
 func (r *DiningRepo) DeleteMenuReviewByID(id string) error {
@@ -616,6 +681,77 @@ func (r *DiningRepo) GetMealHistoryByUser(userId string) ([]domain.MealHistory, 
 		if err := rows.Scan(&h.Id, &h.MenuId, &h.MenuName, &h.SelectedAt); err != nil {
 			return nil, err
 		}
+		history = append(history, h)
+	}
+	return history, nil
+}
+
+func (r *DiningRepo) GetMenuReviewByMenuAndUser(menuId, userId string) (*domain.MenuReview, error) {
+	var mr domain.MenuReview
+	err := r.DB.QueryRow(
+		`SELECT id, menu_id, user_id, breakfast_review, lunch_review, dinner_review 
+		 FROM menu_reviews WHERE menu_id = $1 AND user_id = $2`,
+		menuId, userId,
+	).Scan(&mr.Id, &mr.MenuId, &mr.UserId, &mr.BreakfastReview, &mr.LunchReview, &mr.DinnerReview)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Vraći nil ako ocena ne postoji
+		}
+		return nil, err
+	}
+	return &mr, nil
+}
+
+func (r *DiningRepo) GetMealHistoryWithReviewsByUser(userId string) ([]domain.MealHistoryWithReview, error) {
+	rows, err := r.DB.Query(`
+		SELECT 
+			mh.id, 
+			mh.menu_id, 
+			m.name, 
+			mh.selected_at,
+			mr.id,
+			mr.breakfast_review,
+			mr.lunch_review, 
+			mr.dinner_review
+		FROM meal_history mh
+		JOIN menus m ON mh.menu_id = m.id
+		LEFT JOIN menu_reviews mr ON mh.menu_id = mr.menu_id AND mr.user_id = $1
+		WHERE mh.user_id = $1
+		ORDER BY mh.selected_at DESC`,
+		userId,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var history []domain.MealHistoryWithReview
+	for rows.Next() {
+		var h domain.MealHistoryWithReview
+		var reviewId sql.NullString
+		var breakfastReview, lunchReview, dinnerReview sql.NullInt64
+
+		err := rows.Scan(
+			&h.Id, &h.MenuId, &h.MenuName, &h.SelectedAt,
+			&reviewId, &breakfastReview, &lunchReview, &dinnerReview,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Ako postoji ocena, dodeli je
+		if reviewId.Valid {
+			h.Review = &domain.MenuReview{
+				Id:              uuid.MustParse(reviewId.String),
+				MenuId:          uuid.MustParse(h.MenuId.String()),
+				UserId:          uuid.MustParse(userId),
+				BreakfastReview: breakfastReview.Int64,
+				LunchReview:     lunchReview.Int64,
+				DinnerReview:    dinnerReview.Int64,
+			}
+		}
+
 		history = append(history, h)
 	}
 	return history, nil

@@ -5,8 +5,10 @@ import (
 	"dining/service"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -182,6 +184,65 @@ func (dh *DiningHandler) GetMealHistory(rw http.ResponseWriter, r *http.Request)
 	rw.WriteHeader(http.StatusOK)
 	rw.Header().Set("Content-Type", "application/json")
 	dh.renderJSON(rw, history)
+}
+
+func (h *DiningHandler) GetMealHistoryWithReviews(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userId := strings.Trim(vars["userId"], `"`)
+	if userId == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	history, err := h.service.GetMealHistoryWithReviewsByUser(userId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(history)
+}
+
+func (h *DiningHandler) UpdateReview(w http.ResponseWriter, r *http.Request) {
+	var review domain.MenuReview
+	if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.UpdateMenuReview(&review); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(review)
+}
+
+func (h *DiningHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
+	var input domain.MenuReviewDTO
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	review := domain.MenuReview{
+		Id:              uuid.New(),
+		MenuId:          uuid.MustParse(input.MenuId),
+		UserId:          uuid.MustParse(input.UserId),
+		BreakfastReview: input.BreakfastReview,
+		LunchReview:     input.LunchReview,
+		DinnerReview:    input.DinnerReview,
+	}
+
+	if err := h.service.CreateMenuReview(&review); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(review)
 }
 
 func (dh *DiningHandler) renderJSON(w http.ResponseWriter, v interface{}) {

@@ -79,3 +79,15 @@ func (ds *DiningService) GetMealHistory(id string) ([]domain.MealHistory, error)
 
 	return ds.repo.GetMealHistoryByUser(cleanID)
 }
+
+func (ds *DiningService) GetMealHistoryWithReviewsByUser(id string) ([]domain.MealHistoryWithReview, error) {
+	return ds.repo.GetMealHistoryWithReviewsByUser(id)
+}
+
+func (ds *DiningService) UpdateMenuReview(r *domain.MenuReview) error {
+	return ds.repo.UpdateMenuReview(r)
+}
+
+func (ds *DiningService) CreateMenuReview(review *domain.MenuReview) error {
+	return ds.repo.CreateMenuReview(review)
+}

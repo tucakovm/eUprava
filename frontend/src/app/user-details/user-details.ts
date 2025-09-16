@@ -2,14 +2,17 @@ import {Component, OnInit, inject, ChangeDetectorRef} from '@angular/core';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 
-import { User,MealHistory } from '../model/user';
+import { User, MealHistory, MenuReview } from '../model/user';
 import { UserService } from '../services/user.service';
+
+declare var bootstrap: any;
 
 @Component({
   selector: 'app-user-details',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, RouterModule],
+  imports: [CommonModule, HttpClientModule, RouterModule, FormsModule],
   templateUrl: './user-details.html',
   styleUrls: ['./user-details.css']
 })
@@ -22,6 +25,19 @@ export class UserDetails implements OnInit {
   history: MealHistory[] = [];
   loading = true;
   error: string | null = null;
+
+  // Review modal data
+  selectedMeal: MealHistory | null = null;
+  reviewData: MenuReview = {
+    id: '',
+    menu_id: '',
+    user_id: '',
+    breakfast_review: 0,
+    lunch_review: 0,
+    dinner_review: 0
+  };
+  reviewLoading = false;
+  private reviewModal: any;
 
   ngOnInit() {
     if (typeof window === 'undefined') {
@@ -37,14 +53,14 @@ export class UserDetails implements OnInit {
       return;
     }
 
-    // prvo učitavamo korisnika
+    // Load user first
     this.userService.getUserById(storedUserId).subscribe({
       next: (u) => {
         this.user = u;
         this.loading = false;
         this.cd.detectChanges();
 
-        // posle toga učitavamo istoriju obroka
+        // Then load meal history with reviews
         this.loadMealHistory(storedUserId);
       },
       error: (err) => {
@@ -53,10 +69,20 @@ export class UserDetails implements OnInit {
         this.loading = false;
       }
     });
+
+    // Initialize Bootstrap modal after view init
+    setTimeout(() => {
+      if (typeof bootstrap !== 'undefined') {
+        const modalElement = document.getElementById('reviewModal');
+        if (modalElement) {
+          this.reviewModal = new bootstrap.Modal(modalElement);
+        }
+      }
+    }, 100);
   }
 
   private loadMealHistory(userId: string) {
-    this.userService.getMealHistory(userId).subscribe({
+    this.userService.getMealHistoryWithReviews(userId).subscribe({
       next: (h) => {
         this.history = h;
         this.cd.detectChanges();
@@ -65,6 +91,71 @@ export class UserDetails implements OnInit {
         console.error('Failed to load meal history', err);
       }
     });
+  }
+
+  openReviewModal(meal: MealHistory) {
+    this.selectedMeal = meal;
+
+    if (meal.review) {
+      // Edit existing review
+      this.reviewData = { ...meal.review };
+    } else {
+      // Create new review
+      this.reviewData = {
+        id: '',
+        menu_id: meal.menu_id || '',
+        user_id: this.user?.id || '',
+        breakfast_review: 0,
+        lunch_review: 0,
+        dinner_review: 0
+      };
+    }
+  }
+
+  setRating(field: keyof MenuReview, rating: number) {
+    if (field === 'breakfast_review' || field === 'lunch_review' || field === 'dinner_review') {
+      this.reviewData[field] = rating;
+    }
+  }
+
+  getStarRating(rating: number): string {
+    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  }
+
+  saveReview() {
+    if (!this.selectedMeal || !this.user) return;
+
+    this.reviewLoading = true;
+
+    const isUpdate = !!this.selectedMeal.review;
+
+    const reviewObservable = isUpdate
+      ? this.userService.updateReview(this.reviewData)
+      : this.userService.createReview(this.reviewData);
+
+    reviewObservable.subscribe({
+      next: (review) => {
+        // Update the meal's review in the history
+        if (this.selectedMeal) {
+          this.selectedMeal.review = review;
+        }
+
+        this.reviewLoading = false;
+        this.closeModal();
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Failed to save review', err);
+        this.reviewLoading = false;
+        // You might want to show an error message here
+      }
+    });
+  }
+
+  private closeModal() {
+    if (this.reviewModal) {
+      this.reviewModal.hide();
+    }
   }
 
   deleteUser(userId: string) {

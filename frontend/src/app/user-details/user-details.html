@@ -54,6 +54,8 @@
           <th>#</th>
           <th>Menu Name</th>
           <th>Selected At</th>
+          <th>Reviews</th>
+          <th>Actions</th>
         </tr>
         </thead>
         <tbody>
@@ -61,10 +63,115 @@
           <td>{{ i + 1 }}</td>
           <td>{{ meal.menu_name }}</td>
           <td>{{ meal.selected_at | date: 'medium' }}</td>
+          <td>
+            <div class="d-flex flex-column gap-1">
+              <small *ngIf="meal.review">
+                <strong>Breakfast:</strong>
+                <span class="text-warning">{{ getStarRating(meal.review.breakfast_review) }}</span>
+                ({{ meal.review.breakfast_review }}/5)
+              </small>
+              <small *ngIf="meal.review">
+                <strong>Lunch:</strong>
+                <span class="text-warning">{{ getStarRating(meal.review.lunch_review) }}</span>
+                ({{ meal.review.lunch_review }}/5)
+              </small>
+              <small *ngIf="meal.review">
+                <strong>Dinner:</strong>
+                <span class="text-warning">{{ getStarRating(meal.review.dinner_review) }}</span>
+                ({{ meal.review.dinner_review }}/5)
+              </small>
+              <small *ngIf="!meal.review" class="text-muted">No reviews yet</small>
+            </div>
+          </td>
+          <td>
+            <button
+              class="btn btn-sm"
+              [ngClass]="meal.review ? 'btn-outline-primary' : 'btn-primary'"
+              (click)="openReviewModal(meal)"
+              data-bs-toggle="modal"
+              data-bs-target="#reviewModal">
+              {{ meal.review ? 'View/Edit Review' : 'Add Review' }}
+            </button>
+          </td>
         </tr>
         </tbody>
       </table>
     </div>
+  </div>
 
+  <!-- Review Modal -->
+  <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="reviewModalLabel">
+            {{ selectedMeal?.review ? 'Edit Review' : 'Add Review' }} - {{ selectedMeal?.menu_name }}
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" *ngIf="selectedMeal">
+          <form #reviewForm="ngForm">
+            <div class="mb-3">
+              <label for="breakfastRating" class="form-label">Breakfast Rating</label>
+              <div class="d-flex align-items-center gap-2">
+                <div class="rating-stars">
+                  <span
+                    *ngFor="let star of [1,2,3,4,5]"
+                    class="star"
+                    [class.active]="star <= reviewData.breakfast_review"
+                    (click)="setRating('breakfast_review', star)">
+                    ★
+                  </span>
+                </div>
+                <span class="badge bg-secondary">{{ reviewData.breakfast_review }}/5</span>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="lunchRating" class="form-label">Lunch Rating</label>
+              <div class="d-flex align-items-center gap-2">
+                <div class="rating-stars">
+                  <span
+                    *ngFor="let star of [1,2,3,4,5]"
+                    class="star"
+                    [class.active]="star <= reviewData.lunch_review"
+                    (click)="setRating('lunch_review', star)">
+                    ★
+                  </span>
+                </div>
+                <span class="badge bg-secondary">{{ reviewData.lunch_review }}/5</span>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="dinnerRating" class="form-label">Dinner Rating</label>
+              <div class="d-flex align-items-center gap-2">
+                <div class="rating-stars">
+                  <span
+                    *ngFor="let star of [1,2,3,4,5]"
+                    class="star"
+                    [class.active]="star <= reviewData.dinner_review"
+                    (click)="setRating('dinner_review', star)">
+                    ★
+                  </span>
+                </div>
+                <span class="badge bg-secondary">{{ reviewData.dinner_review }}/5</span>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="saveReview()"
+            [disabled]="reviewLoading">
+            <span *ngIf="reviewLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+            {{ selectedMeal?.review ? 'Update Review' : 'Save Review' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

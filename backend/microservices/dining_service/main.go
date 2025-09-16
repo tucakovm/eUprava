@@ -45,6 +45,10 @@ func main() {
 	router.HandleFunc("/api/menus/{id}", diningHandler.DeleteMenu).Methods(http.MethodDelete)
 	router.HandleFunc("/api/menus/", diningHandler.CreateMenu).Methods(http.MethodPost)
 
+	router.HandleFunc("/api/menus/reviews/", diningHandler.CreateReview).Methods(http.MethodPost)
+	router.HandleFunc("/api/menus/reviews/", diningHandler.UpdateReview).Methods(http.MethodPut)
+	router.HandleFunc("/api/menus/reviews/{userId}", diningHandler.GetMealHistoryWithReviews).Methods(http.MethodGet)
+
 	corsObj := handlers.CORS(
 		handlers.AllowedOrigins([]string{"http://localhost:4200"}), // Angular frontend
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
