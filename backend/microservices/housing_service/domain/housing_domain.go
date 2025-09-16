@@ -15,8 +15,8 @@ type Soba struct {
 	ID        uuid.UUID       `json:"id"`
 	Broj      string          `json:"broj"`
 	Slobodna  bool            `json:"slobodna"`
-	DomID     uuid.UUID       `json:"domId"` 
-	Studenti  []Student       `json:"studenti,omitempty"`   
+	DomID     uuid.UUID       `json:"domId"`
+	Studenti  []Student       `json:"studenti,omitempty"`
 	Recenzije []RecenzijaSobe `json:"recenzije,omitempty"`
 	Kvarovi   []Kvar          `json:"kvarovi,omitempty"`
 }
@@ -25,15 +25,15 @@ type Student struct {
 	ID      uuid.UUID  `json:"id"`
 	Ime     string     `json:"ime"`
 	Prezime string     `json:"prezime"`
-	SobaID  *uuid.UUID `json:"sobaId,omitempty"` 
+	SobaID  *uuid.UUID `json:"sobaId,omitempty"`
 }
 
 type RecenzijaSobe struct {
 	ID       uuid.UUID `json:"id"`
 	Ocena    int       `json:"ocena"`
 	Komentar *string   `json:"komentar,omitempty"`
-	SobaID   uuid.UUID `json:"sobaId"`  
-	AutorID  uuid.UUID `json:"autorId"` 
+	SobaID   uuid.UUID `json:"sobaId"`
+	AutorID  uuid.UUID `json:"autorId"`
 }
 
 type StatusKvara string
@@ -49,5 +49,10 @@ type Kvar struct {
 	Opis       string      `json:"opis"`
 	Status     StatusKvara `json:"status"`
 	SobaID     uuid.UUID   `json:"sobaId"`
-	PrijavioID uuid.UUID   `json:"prijavioId"`  
+	PrijavioID uuid.UUID   `json:"prijavioId"`
+}
+type StudentskaKartica struct {
+	ID        uuid.UUID `json:"id"`
+	Stanje    float64   `json:"stanje"`
+	StudentID uuid.UUID `json:"studentID"`
 }

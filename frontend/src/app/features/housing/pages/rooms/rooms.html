@@ -1,0 +1,46 @@
+<div class="card">
+  <h3>Dodeli sobu i kreiraj studenta</h3>
+  <form [formGroup]="assignForm" (ngSubmit)="submitAssign()">
+    <div class="form-row">
+      <label>Dom ID <input formControlName="domId" /></label>
+      <label>Broj sobe <input formControlName="broj" /></label>
+    </div>
+    <div class="form-row">
+      <label>Ime <input formControlName="ime" /></label>
+      <label>Prezime <input formControlName="prezime" /></label>
+    </div>
+    <button [disabled]="assignForm.invalid">Dodeli</button>
+  </form>
+  <pre *ngIf="assigned">{{ assigned | json }}</pre>
+</div>
+
+<div class="card">
+  <h3>Slobodne sobe u domu</h3>
+  <form [formGroup]="freeForm" (ngSubmit)="submitFree()">
+    <label>Dom ID <input formControlName="domId" /></label>
+    <button [disabled]="freeForm.invalid">Pretraži</button>
+  </form>
+  <table *ngIf="freeRooms.length">
+    <thead><tr><th>ID</th><th>Broj</th><th>Detalj</th></tr></thead>
+    <tbody>
+      <tr *ngFor="let r of freeRooms">
+        <td>{{ r.id }}</td>
+        <td>{{ r.broj }}</td>
+        <td><button (click)="detail(r.id)">Detalj</button></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Get Room by ID</h3>
+  <form [formGroup]="getForm" (ngSubmit)="submitGet()">
+    <label>Room ID <input formControlName="id" /></label>
+    <button [disabled]="getForm.invalid">Get</button>
+  </form>
+  <pre *ngIf="room">{{ room | json }}</pre>
+</div>
+
+<div class="card" *ngIf="error">
+  <strong>Greška:</strong> {{ error }}
+</div>
