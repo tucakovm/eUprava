@@ -2,9 +2,14 @@
   <div class="container">
     <a class="navbar-brand" routerLink="/home">TUCKO IS D GOATTT</a>
 
-    <div>
-      <button *ngIf="auth?.isAuthenticated" class="btn btn-outline-light me-2" (click)="logout()">Logout</button>
+    <div class="d-flex align-items-center">
+      <!-- Profile button i Logout -->
+      <ng-container *ngIf="auth?.isAuthenticated">
+        <button class="btn btn-outline-light me-2" routerLink="/user-details">Profile</button>
+        <button class="btn btn-outline-light" (click)="logout()">Logout</button>
+      </ng-container>
 
+      <!-- Login/Register buttons -->
       <ng-container *ngIf="!auth?.isAuthenticated">
         <a class="btn btn-outline-light me-2" routerLink="/login">Login</a>
         <a class="btn btn-primary" routerLink="/register">Register</a>

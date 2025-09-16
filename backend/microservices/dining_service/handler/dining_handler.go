@@ -170,6 +170,20 @@ func (dh *DiningHandler) GetPopularMeals(rw http.ResponseWriter, r *http.Request
 	dh.renderJSON(rw, popMenus)
 }
 
+func (dh *DiningHandler) GetMealHistory(rw http.ResponseWriter, r *http.Request) {
+	userId := mux.Vars(r)["id"]
+
+	history, err := dh.service.GetMealHistory(userId)
+	if err != nil {
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
+	rw.Header().Set("Content-Type", "application/json")
+	dh.renderJSON(rw, history)
+}
+
 func (dh *DiningHandler) renderJSON(w http.ResponseWriter, v interface{}) {
 	js, err := json.Marshal(v)
 

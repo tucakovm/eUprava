@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -23,11 +24,22 @@ var (
 type AuthService interface {
 	Register(ctx context.Context, req models.RegisterRequest) (models.User, error)
 	Login(ctx context.Context, req models.LoginRequest) (models.LoginResponse, error)
+	GetUser(ctx context.Context, id string) (*models.UserDTO, error)
 }
 
 type authService struct {
 	repo      repositories.UserRepository
 	jwtSecret []byte
+}
+
+func (s *authService) GetUser(ctx context.Context, id string) (*models.UserDTO, error) {
+	cleanID := strings.Trim(strings.TrimSpace(id), "\"")
+
+	if _, err := uuid.Parse(cleanID); err != nil {
+		return nil, fmt.Errorf("invalid UUID format: %s", cleanID)
+	}
+
+	return s.repo.GetUserByID(ctx, cleanID)
 }
 
 func NewAuthService(repo repositories.UserRepository, jwtSecret string) AuthService {

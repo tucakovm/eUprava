@@ -2,6 +2,10 @@ package service
 
 import (
 	"dining/domain"
+	"fmt"
+	"strings"
+
+	"github.com/google/uuid"
 )
 
 type DiningService struct {
@@ -64,4 +68,14 @@ func (ds *DiningService) DeleteMenu(id string) error {
 
 func (ds *DiningService) GetPopularMenus(id string) ([]domain.PopularMeal, error) {
 	return ds.repo.GetPopularMealsByCanteen(id, 5)
+}
+
+func (ds *DiningService) GetMealHistory(id string) ([]domain.MealHistory, error) {
+	cleanID := strings.Trim(strings.TrimSpace(id), "\"")
+
+	if _, err := uuid.Parse(cleanID); err != nil {
+		return nil, fmt.Errorf("invalid UUID format: %s", cleanID)
+	}
+
+	return ds.repo.GetMealHistoryByUser(cleanID)
 }

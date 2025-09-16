@@ -2,19 +2,30 @@ package models
 
 import (
 	"fmt"
+
 	"github.com/google/uuid"
 )
 
 // User struct represents a user in the database
 type User struct {
-	Id uuid.UUID 				`json:"id"` 
-	FirstName string            `json:"firstname"`
-	LastName  string            `json:"lastname"`
-	Username  string            `json:"username"`
-	Email     string            `json:"email"`
-	Password  string            `json:"password"`
-	IsActive  bool              `json:"is_active"`
-	Role      string            `json:"role"`
+	Id        uuid.UUID `json:"id"`
+	FirstName string    `json:"firstname"`
+	LastName  string    `json:"lastname"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Password  string    `json:"password"`
+	IsActive  bool      `json:"is_active"`
+	Role      string    `json:"role"`
+}
+
+type UserDTO struct {
+	Id        uuid.UUID `json:"id"`
+	FirstName string    `json:"firstname"`
+	LastName  string    `json:"lastname"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	IsActive  bool      `json:"is_active"`
+	Role      string    `json:"role"`
 }
 
 type RegisterRequest struct {

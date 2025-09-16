@@ -7,6 +7,8 @@ import (
 
 	"users_module/models"
 	"users_module/services"
+
+	"github.com/gorilla/mux"
 )
 
 type AuthHandler struct {
@@ -55,6 +57,19 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+func (a *AuthHandler) GetUser(rw http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+
+	user, err := a.Svc.GetUser(r.Context(), id)
+
+	if err != nil {
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(rw, http.StatusOK, user)
 }
 
 // helpers

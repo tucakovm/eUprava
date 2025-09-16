@@ -101,4 +101,5 @@ type DiningRepository interface {
 	GetMenusByCanteenID(canteenID string) ([]*Menu, error)
 	DeleteMenuAndMealsByID(id string) error
 	GetPopularMealsByCanteen(canteenId string, limit int) ([]PopularMeal, error)
+	GetMealHistoryByUser(userId string) ([]MealHistory, error)
 }

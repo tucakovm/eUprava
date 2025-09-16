@@ -58,24 +58,25 @@ func (r *UserRepository) migrateAndSeed() error {
 
 	// napravi tabelu ako ne postoji
 	_, err := r.DB.ExecContext(ctx, `
-CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY,
-  firstname  STRING NOT NULL,
-  lastname   STRING NOT NULL,
-  username   STRING UNIQUE NOT NULL,
-  email      STRING UNIQUE NOT NULL,
-  password_hash BYTES NOT NULL,
-  is_active  BOOL NOT NULL DEFAULT true,
-  role       STRING NOT NULL DEFAULT 'user',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);`)
+			CREATE TABLE IF NOT EXISTS users (
+			  id UUID PRIMARY KEY,
+			  firstname  STRING NOT NULL,
+			  lastname   STRING NOT NULL,
+			  username   STRING UNIQUE NOT NULL,
+			  email      STRING UNIQUE NOT NULL,
+			  password_hash BYTES NOT NULL,
+			  is_active  BOOL NOT NULL DEFAULT true,
+			  role       STRING NOT NULL DEFAULT 'user',
+			  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+			);`)
 	if err != nil {
 		return err
 	}
 
-	// inicijalni korisnici
+	// inicijalni korisnici sa hardkodovanim UUID-ovima
 	users := []struct {
+		ID        string
 		FirstName string
 		LastName  string
 		Username  string
@@ -83,19 +84,21 @@ CREATE TABLE IF NOT EXISTS users (
 		Password  string
 		Role      string
 	}{
-		{"Admin", "User", "admin", "admin@example.com", "Admin123!", "admin"},
-		{"Test", "User", "testuser", "test@example.com", "Test123!", "user"},
+		{"550e8400-e29b-41d4-a716-446655440000", "AdminFN", "AdminLN", "admin", "admin@example.com", "Admin123!", "admin"},
+		{"550e8400-e29b-41d4-a716-446655440001", "UserFN", "UserLN", "testuser", "test@example.com", "Test123!", "user"},
 	}
 
 	for _, u := range users {
 		hash, _ := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 
+		userID, _ := uuid.Parse(u.ID)
+
 		_, err := r.DB.ExecContext(ctx, `
-INSERT INTO users (id, firstname, lastname, username, email, password_hash, is_active, role)
-VALUES ($1,$2,$3,$4,$5,$6,true,$7)
-ON CONFLICT (username) DO NOTHING;
-		`,
-			uuid.New(), u.FirstName, u.LastName, u.Username, u.Email, hash, u.Role,
+			INSERT INTO users (id, firstname, lastname, username, email, password_hash, is_active, role)
+			VALUES ($1,$2,$3,$4,$5,$6,true,$7)
+			ON CONFLICT (username) DO NOTHING;
+       `,
+			userID, u.FirstName, u.LastName, u.Username, u.Email, hash, u.Role,
 		)
 		if err != nil {
 			return err
@@ -140,4 +143,43 @@ LIMIT 1;
 		return nil, nil, err
 	}
 	return &u, pwd, nil
+}
+
+func (r *UserRepository) GetUserByID(ctx context.Context, id string) (*models.UserDTO, error) {
+	const q = `SELECT id, firstname, lastname, username, email, is_active, role 
+               FROM users WHERE id = $1 LIMIT 1`
+
+	var (
+		u     models.UserDTO
+		idStr string // Dodaj ovo
+	)
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	err := r.DB.QueryRowContext(ctx, q, id).Scan(
+		&idStr, // Scan u string prvo
+		&u.FirstName,
+		&u.LastName,
+		&u.Username,
+		&u.Email,
+		&u.IsActive,
+		&u.Role,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("user with id %s not found", id)
+		}
+		fmt.Printf("Database scan error: %v\n", err) // Debug
+		return nil, fmt.Errorf("database error: %v", err)
+	}
+
+	parsedID, err := uuid.Parse(idStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid UUID in database: %v", err)
+	}
+	u.Id = parsedID
+
+	return &u, nil
 }

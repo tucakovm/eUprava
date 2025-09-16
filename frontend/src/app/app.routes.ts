@@ -5,6 +5,7 @@ import { HomeComponent } from './home/home';
 import { CanteensComponent } from './canteens/canteens';
 import { CanteenDetailsComponent} from './canteen-details/canteen-details';
 import {MenusComponent} from './menus/menus';
+import {UserDetails} from './user-details/user-details';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -14,5 +15,6 @@ export const routes: Routes = [
   { path: 'canteens',component: CanteensComponent},
   { path: 'canteens/:id', component: CanteenDetailsComponent},
   { path: 'menus/:id', component: MenusComponent},
+  { path: 'user-details', component: UserDetails},
   { path: '**', redirectTo: 'login' }
 ];

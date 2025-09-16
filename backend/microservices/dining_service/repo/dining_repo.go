@@ -46,13 +46,17 @@ func NewDiningRepo() (*DiningRepo, error) {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
-	// Dodavanje test kantina
+	// TEST DATA----------->
 	if err := repo.SeedCanteens(); err != nil {
 		return nil, fmt.Errorf("seeding cantines failed: %w", err)
 	}
 
 	if err := repo.SeedMenusForCanteenA(); err != nil {
 		return nil, fmt.Errorf("seeding menus for Canteen A failed: %w", err)
+	}
+
+	if err := repo.SeedMealHistory("550e8400-e29b-41d4-a716-446655440001"); err != nil {
+		fmt.Println("Seeding meal history failed:", err)
 	}
 
 	return repo, nil
@@ -190,6 +194,45 @@ func (r *DiningRepo) SeedMenusForCanteenA() error {
 			if err := r.CreateMenu(&menu); err != nil {
 				return fmt.Errorf("failed to create menu for %s: %w", day, err)
 			}
+		}
+	}
+
+	return nil
+}
+
+func (r *DiningRepo) SeedMealHistory(userId string) error {
+	// Uzimamo nekoliko postojećih menija iz baze (iz Canteen A)
+	rows, err := r.DB.Query(`SELECT id FROM menus LIMIT 3`)
+	if err != nil {
+		return fmt.Errorf("failed to fetch menus for seeding history: %w", err)
+	}
+	defer rows.Close()
+
+	var menuIds []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return err
+		}
+		menuIds = append(menuIds, id)
+	}
+
+	if len(menuIds) == 0 {
+		return fmt.Errorf("no menus found for seeding history")
+	}
+
+	// Dodajemo par unosa u istoriju za datog korisnika
+	for i, menuId := range menuIds {
+		historyId := uuid.New()
+		selectedAt := time.Now().Add(-time.Duration(i) * time.Hour) // svaki sat unazad
+
+		_, err := r.DB.Exec(
+			`INSERT INTO meal_history (id, user_id, menu_id, selected_at)
+             VALUES ($1, $2, $3, $4)`,
+			historyId, userId, menuId, selectedAt,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert meal history: %w", err)
 		}
 	}
 
