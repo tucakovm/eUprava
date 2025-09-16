@@ -66,6 +66,7 @@ func (dr *HousingRepo) Migrate() error {
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			broj STRING NOT NULL,
 			slobodna BOOL NOT NULL DEFAULT true,
+			kapacitet INT NOT NULL DEFAULT 1,
 			dom_id UUID NOT NULL REFERENCES dom(id) ON DELETE CASCADE,
 			CONSTRAINT soba_dom_broj_unq UNIQUE (dom_id, broj)
 		);`,
@@ -171,9 +172,9 @@ func (dr *HousingRepo) InitData(ctx context.Context) error {
 
 	// --- Soba (2) u Dom 1 ---
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO soba (id, broj, slobodna, dom_id) VALUES
-		 ($1,'101', true,  $3),
-		 ($2,'102', false, $3)`,
+		`INSERT INTO soba (id, broj, slobodna, kapacitet, dom_id) VALUES
+		 ($1,'101', true, 3, $3),
+		 ($2,'102', false, 2, $3)`,
 		soba101ID, soba102ID, dom1ID,
 	); err != nil {
 		return err
@@ -237,6 +238,7 @@ type DBTX interface {
 // Dom
 type DomRepository interface {
 	Get(ctx context.Context, q DBTX, id uuid.UUID) (domain.Dom, error)
+	GetAll(ctx context.Context, q DBTX) ([]domain.Dom, error)
 }
 
 // Soba
@@ -289,6 +291,31 @@ type domRepo struct{}
 
 func NewDomRepo() DomRepository { return &domRepo{} }
 
+func (r *domRepo) GetAll(ctx context.Context, q DBTX) ([]domain.Dom, error) {
+	rows, err := q.QueryContext(ctx,
+		`SELECT id, naziv, adresa FROM dom`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var domovi []domain.Dom
+	for rows.Next() {
+		var d domain.Dom
+		if err := rows.Scan(&d.ID, &d.Naziv, &d.Adresa); err != nil {
+			return nil, err
+		}
+		domovi = append(domovi, d)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return domovi, nil
+}
+
 func (r *domRepo) Get(ctx context.Context, q DBTX, id uuid.UUID) (domain.Dom, error) {
 	var d domain.Dom
 	err := q.QueryRowContext(ctx,
@@ -305,13 +332,13 @@ func NewSobaRepo() SobaRepository { return &sobaRepo{} }
 func (r *sobaRepo) Get(ctx context.Context, q DBTX, id uuid.UUID) (domain.Soba, error) {
 	var s domain.Soba
 	err := q.QueryRowContext(ctx,
-		`SELECT id, broj, slobodna, dom_id FROM soba WHERE id = $1`, id,
+		`SELECT id, broj, slobodna, kapacitet, dom_id FROM soba WHERE id = $1`, id,
 	).Scan(&s.ID, &s.Broj, &s.Slobodna, &s.DomID)
 	return s, err
 }
 
 func (r *sobaRepo) GetByBroj(ctx context.Context, q DBTX, domID uuid.UUID, broj string, forUpdate bool) (domain.Soba, error) {
-	sql := `SELECT id, broj, slobodna, dom_id FROM soba WHERE dom_id = $1 AND broj = $2`
+	sql := `SELECT id, broj, slobodna, kapacitet, dom_id FROM soba WHERE dom_id = $1 AND broj = $2`
 	if forUpdate {
 		sql += " FOR UPDATE"
 	}
@@ -325,7 +352,7 @@ func (r *sobaRepo) Create(ctx context.Context, q DBTX, s *domain.Soba) error {
 		s.ID = uuid.New()
 	}
 	return q.QueryRowContext(ctx,
-		`INSERT INTO soba (id, broj, slobodna, dom_id) 
+		`INSERT INTO soba (id, broj, slobodna, kapacitet, dom_id) 
 		 VALUES ($1,$2,$3,$4) RETURNING id`,
 		s.ID, s.Broj, s.Slobodna, s.DomID,
 	).Scan(&s.ID)
@@ -338,7 +365,7 @@ func (r *sobaRepo) SetSlobodna(ctx context.Context, q DBTX, sobaID uuid.UUID, sl
 
 func (r *sobaRepo) ListSlobodne(ctx context.Context, q DBTX, domID uuid.UUID) ([]domain.Soba, error) {
 	rows, err := q.QueryContext(ctx,
-		`SELECT id, broj, slobodna, dom_id
+		`SELECT id, broj, slobodna, kapacitet, dom_id
 		   FROM soba
 		  WHERE dom_id = $1 AND slobodna = true
 		  ORDER BY broj`, domID)
@@ -350,7 +377,7 @@ func (r *sobaRepo) ListSlobodne(ctx context.Context, q DBTX, domID uuid.UUID) ([
 	var out []domain.Soba
 	for rows.Next() {
 		var s domain.Soba
-		if err := rows.Scan(&s.ID, &s.Broj, &s.Slobodna, &s.DomID); err != nil {
+		if err := rows.Scan(&s.ID, &s.Broj, &s.Slobodna, &s.Kapacitet, &s.DomID); err != nil {
 			return nil, err
 		}
 		out = append(out, s)

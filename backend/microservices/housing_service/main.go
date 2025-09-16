@@ -41,6 +41,9 @@ func main() {
 	hh := handler.NewHousingHandler(svcs)
 
 	// === Routes (housing) ===
+	// Doms
+	router.Handle("/api/housing/doms", http.HandlerFunc(hh.ListDomovi)).Methods(http.MethodGet) // svi domovi
+	router.Handle("/api/housing/dom", http.HandlerFunc(hh.GetDom)).Methods(http.MethodGet)      // jedan dom po ID-u (query param id)
 	// Students
 	router.Handle("/api/housing/students", http.HandlerFunc(hh.CreateStudent)).Methods(http.MethodPost)
 	router.Handle("/api/housing/students/release", http.HandlerFunc(hh.ReleaseStudentRoom)).Methods(http.MethodPost)

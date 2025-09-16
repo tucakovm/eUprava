@@ -15,6 +15,7 @@ type Soba struct {
 	ID        uuid.UUID       `json:"id"`
 	Broj      string          `json:"broj"`
 	Slobodna  bool            `json:"slobodna"`
+	Kapacitet int             `json:"kapacitet"`
 	DomID     uuid.UUID       `json:"domId"`
 	Studenti  []Student       `json:"studenti,omitempty"`
 	Recenzije []RecenzijaSobe `json:"recenzije,omitempty"`

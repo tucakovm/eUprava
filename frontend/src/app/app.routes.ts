@@ -13,6 +13,10 @@ import { Students } from './features/housing/pages/students/students';
 import { RoomDetail } from './features/housing/pages/room-detail/room-detail';
 import { Reviews } from './features/housing/pages/reviews/reviews';
 import { Faults } from './features/housing/pages/faults/faults';
+import { DomListComponent } from './domovi/domovi/domovi';
+import { DomDetailComponent } from './domovi/dom-details/dom-details';
+import { SlobodneSobeComponent } from './sobe/slobodne-sobe/slobodne-sobe';
+import { DodajStudentaUSobuComponent } from './studenti/dodaj-studenta-usobu/dodaj-studenta-usobu';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -25,13 +29,19 @@ export const routes: Routes = [
   { path: 'user-details', component: UserDetails},
   { path: 'canteens',component: CanteensComponent},
     { path: 'dashboard', component: Dashboard },
+      { path: 'rooms/free', component: SlobodneSobeComponent },
+  { path: 'rooms/assign', component:DodajStudentaUSobuComponent },
   { path: 'students', component: Students },
   { path: 'rooms', component: Rooms },
   { path: 'rooms/:id', component: RoomDetail },
   { path: 'cards', component: StudentCards },
   { path: 'reviews', component: Reviews },
   { path: 'faults', component: Faults },
-  
+
+
+  { path: 'doms', component: DomListComponent },
+  { path: 'doms/:id', component: DomDetailComponent },
+
   { path: '**', redirectTo: 'login' },
 
 ];

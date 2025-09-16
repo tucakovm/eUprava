@@ -1,0 +1,66 @@
+<div class="container py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <button class="btn btn-outline-secondary" (click)="backToFree()">← Nazad</button>
+    <h1 class="h4 m-0">Upiši studenta u sobu</h1>
+    <div></div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-7">
+      <div class="card shadow">
+        <div class="card-body">
+          <div class="mb-3">
+            <span class="badge bg-primary me-2">Dom: {{ domId || '—' }}</span>
+            <span class="badge bg-info">Soba: {{ broj || '—' }}</span>
+          </div>
+
+          <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Ime</label>
+                <input type="text" class="form-control" formControlName="ime"
+                       [class.is-invalid]="form.controls.ime.touched && form.controls.ime.invalid">
+                <div class="invalid-feedback">Obavezno, min 2 znaka.</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Prezime</label>
+                <input type="text" class="form-control" formControlName="prezime"
+                       [class.is-invalid]="form.controls.prezime.touched && form.controls.prezime.invalid">
+                <div class="invalid-feedback">Obavezno, min 2 znaka.</div>
+              </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 mt-4">
+              <button type="submit" class="btn btn-primary" [disabled]="loading">
+                <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+                Upiši studenta
+              </button>
+              <button type="button" class="btn btn-outline-secondary" (click)="backToFree()">Otkaži</button>
+            </div>
+          </form>
+
+          <div *ngIf="errorMsg" class="alert alert-danger mt-3">
+            {{ errorMsg }}
+          </div>
+
+          <div *ngIf="created" class="alert alert-success mt-3">
+            <div class="fw-semibold">Uspešno upisan student</div>
+            <div>ID: <code>{{ created.id }}</code></div>
+            <div>{{ created.ime }} {{ created.prezime }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-5">
+      <div class="card shadow h-100">
+        <div class="card-body">
+          <h3 class="h6 text-uppercase text-muted mb-3">Napomena</h3>
+          <p class="mb-0">
+            Ako je soba popunjena (kapacitet), server vraća <code>409 Conflict</code>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

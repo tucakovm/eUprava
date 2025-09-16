@@ -18,6 +18,7 @@ export interface Soba {
   broj: string;
   slobodna: boolean;
   domId: string;
+  kapacitet: number;
   studenti?: Student[];
   recenzije?: RecenzijaSobe[];
   kvarovi?: Kvar[];

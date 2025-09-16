@@ -8,6 +8,7 @@ import (
 
 	"housing/domain"
 	"housing/service"
+	"log"
 )
 
 type HousingHandler struct {
@@ -34,6 +35,41 @@ func (h *HousingHandler) renderJSON(w http.ResponseWriter, v interface{}) {
 
 func (h *HousingHandler) badRequest(w http.ResponseWriter, msg string) {
 	http.Error(w, msg, http.StatusBadRequest)
+}
+
+/* =========================
+   Domovi (read)
+   ========================= */
+
+// GET /dom?id=<uuid>
+func (h *HousingHandler) GetDom(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		h.badRequest(w, "missing id")
+		return
+	}
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		h.badRequest(w, "invalid id")
+		return
+	}
+
+	dom, err := h.service.GetDom(r.Context(), id)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	h.renderJSON(w, dom)
+}
+
+// GET /doms
+func (h *HousingHandler) ListDomovi(w http.ResponseWriter, r *http.Request) {
+	domovi, err := h.service.GetAllDomovi(r.Context())
+	if err != nil {
+		http.Error(w, "database exception", http.StatusInternalServerError)
+		return
+	}
+	h.renderJSON(w, domovi)
 }
 
 /* =========================
@@ -387,6 +423,7 @@ func (h *HousingHandler) ListFreeRooms(w http.ResponseWriter, r *http.Request) {
 
 	rooms, err := h.service.ListSlobodneSobe(r.Context(), domID)
 	if err != nil {
+		log.Printf("ListSlobodneSobe failed: %v", err)
 		http.Error(w, "database exception", http.StatusInternalServerError)
 		return
 	}

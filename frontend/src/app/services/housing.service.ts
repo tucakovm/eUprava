@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import {
-  Student, Soba, RecenzijaSobe, Kvar, StatusKvara, StudentskaKartica
+import {Dom, Student, Soba, RecenzijaSobe, Kvar, StatusKvara, StudentskaKartica
 } from '../model/housing';
 import { Observable } from 'rxjs';
 
@@ -10,6 +9,15 @@ export class HousingService {
   private base = 'http://localhost:8003/api/housing';
 
   constructor(private http: HttpClient) {}
+
+    getAllDoms() {
+    return this.http.get<Dom[]>(`${this.base}/doms`);
+  }
+
+  getDomById(id: string) {
+    const params = new HttpParams().set('id', id);
+    return this.http.get<Dom>(`${this.base}/dom`, { params });
+  }
 
   // Students
   createStudent(ime: string, prezime: string): Observable<Student> {
