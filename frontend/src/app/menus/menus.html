@@ -1,7 +1,7 @@
 <div class="container py-5">
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3>Menus</h3>
+    <h3>Weekly Menus</h3>
     <button type="button" class="btn btn-success" (click)="openMenuForm()">Create Menu</button>
   </div>
 
@@ -10,41 +10,29 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <form #menuForm="ngForm" (ngSubmit)="createMenu()" novalidate>
-
           <div class="modal-header">
             <h5 class="modal-title">Create New Menu</h5>
             <button type="button" class="btn-close" (click)="closeMenuForm()"></button>
           </div>
 
           <div class="modal-body">
-            <!-- Hidden canteen id (set it in openMenuForm) -->
+            <!-- Hidden canteen id -->
             <input type="hidden" [(ngModel)]="newMenu.canteen_id" name="canteen_id">
 
             <!-- Menu name and weekday -->
             <div class="row g-3">
               <div class="col-md-8">
                 <label class="form-label">Menu Name</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  placeholder="Menu Name"
-                  [(ngModel)]="newMenu.name"
-                  name="name"
-                  required
-                  #nameCtrl="ngModel">
+                <input type="text" class="form-control" [(ngModel)]="newMenu.name" name="name"
+                       placeholder="Menu Name" required #nameCtrl="ngModel">
                 <div *ngIf="nameCtrl.invalid && nameCtrl.touched" class="text-danger small mt-1">
                   Menu name is required.
                 </div>
               </div>
-
               <div class="col-md-4">
                 <label class="form-label">Weekday</label>
-                <select
-                  class="form-select"
-                  [(ngModel)]="newMenu.weekday"
-                  name="weekday"
-                  required
-                  #weekdayCtrl="ngModel">
+                <select class="form-select" [(ngModel)]="newMenu.weekday" name="weekday"
+                        required #weekdayCtrl="ngModel">
                   <option [ngValue]="null" disabled selected>Choose day</option>
                   <option *ngFor="let day of weekdays" [ngValue]="day">{{ day }}</option>
                 </select>
@@ -61,42 +49,22 @@
               <h6>Breakfast</h6>
               <div class="row g-2">
                 <div class="col-md-5">
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Breakfast name"
-                    [(ngModel)]="newMenu.breakfast.name"
-                    name="breakfastName"
-                    required
-                    #bfName="ngModel">
+                  <input type="text" class="form-control" [(ngModel)]="newMenu.breakfast.name" name="breakfastName"
+                         placeholder="Breakfast name" required #bfName="ngModel">
                   <div *ngIf="bfName.invalid && bfName.touched" class="text-danger small mt-1">
                     Breakfast name is required.
                   </div>
                 </div>
                 <div class="col-md-5">
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Breakfast description"
-                    [(ngModel)]="newMenu.breakfast.description"
-                    name="breakfastDesc"
-                    required
-                    #bfDesc="ngModel">
+                  <input type="text" class="form-control" [(ngModel)]="newMenu.breakfast.description" name="breakfastDesc"
+                         placeholder="Breakfast description" required #bfDesc="ngModel">
                   <div *ngIf="bfDesc.invalid && bfDesc.touched" class="text-danger small mt-1">
                     Breakfast description is required.
                   </div>
                 </div>
                 <div class="col-md-2">
-                  <input
-                    type="number"
-                    class="form-control"
-                    placeholder="Price"
-                    [(ngModel)]="newMenu.breakfast.price"
-                    name="breakfastPrice"
-                    required
-                    min="0"
-                    step="0.01"
-                    #bfPrice="ngModel">
+                  <input type="number" class="form-control" [(ngModel)]="newMenu.breakfast.price" name="breakfastPrice"
+                         placeholder="Price" required min="0" step="0.01" #bfPrice="ngModel">
                   <div *ngIf="bfPrice.invalid && bfPrice.touched" class="text-danger small mt-1">
                     Enter valid price.
                   </div>
@@ -109,42 +77,22 @@
               <h6>Lunch</h6>
               <div class="row g-2">
                 <div class="col-md-5">
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Lunch name"
-                    [(ngModel)]="newMenu.lunch.name"
-                    name="lunchName"
-                    required
-                    #lName="ngModel">
+                  <input type="text" class="form-control" [(ngModel)]="newMenu.lunch.name" name="lunchName"
+                         placeholder="Lunch name" required #lName="ngModel">
                   <div *ngIf="lName.invalid && lName.touched" class="text-danger small mt-1">
                     Lunch name is required.
                   </div>
                 </div>
                 <div class="col-md-5">
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Lunch description"
-                    [(ngModel)]="newMenu.lunch.description"
-                    name="lunchDesc"
-                    required
-                    #lDesc="ngModel">
+                  <input type="text" class="form-control" [(ngModel)]="newMenu.lunch.description" name="lunchDesc"
+                         placeholder="Lunch description" required #lDesc="ngModel">
                   <div *ngIf="lDesc.invalid && lDesc.touched" class="text-danger small mt-1">
                     Lunch description is required.
                   </div>
                 </div>
                 <div class="col-md-2">
-                  <input
-                    type="number"
-                    class="form-control"
-                    placeholder="Price"
-                    [(ngModel)]="newMenu.lunch.price"
-                    name="lunchPrice"
-                    required
-                    min="0"
-                    step="0.01"
-                    #lPrice="ngModel">
+                  <input type="number" class="form-control" [(ngModel)]="newMenu.lunch.price" name="lunchPrice"
+                         placeholder="Price" required min="0" step="0.01" #lPrice="ngModel">
                   <div *ngIf="lPrice.invalid && lPrice.touched" class="text-danger small mt-1">
                     Enter valid price.
                   </div>
@@ -157,75 +105,71 @@
               <h6>Dinner</h6>
               <div class="row g-2">
                 <div class="col-md-5">
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Dinner name"
-                    [(ngModel)]="newMenu.dinner.name"
-                    name="dinnerName"
-                    required
-                    #dName="ngModel">
+                  <input type="text" class="form-control" [(ngModel)]="newMenu.dinner.name" name="dinnerName"
+                         placeholder="Dinner name" required #dName="ngModel">
                   <div *ngIf="dName.invalid && dName.touched" class="text-danger small mt-1">
                     Dinner name is required.
                   </div>
                 </div>
                 <div class="col-md-5">
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Dinner description"
-                    [(ngModel)]="newMenu.dinner.description"
-                    name="dinnerDesc"
-                    required
-                    #dDesc="ngModel">
+                  <input type="text" class="form-control" [(ngModel)]="newMenu.dinner.description" name="dinnerDesc"
+                         placeholder="Dinner description" required #dDesc="ngModel">
                   <div *ngIf="dDesc.invalid && dDesc.touched" class="text-danger small mt-1">
                     Dinner description is required.
                   </div>
                 </div>
                 <div class="col-md-2">
-                  <input
-                    type="number"
-                    class="form-control"
-                    placeholder="Price"
-                    [(ngModel)]="newMenu.dinner.price"
-                    name="dinnerPrice"
-                    required
-                    min="0"
-                    step="0.01"
-                    #dPrice="ngModel">
+                  <input type="number" class="form-control" [(ngModel)]="newMenu.dinner.price" name="dinnerPrice"
+                         placeholder="Price" required min="0" step="0.01" #dPrice="ngModel">
                   <div *ngIf="dPrice.invalid && dPrice.touched" class="text-danger small mt-1">
                     Enter valid price.
                   </div>
                 </div>
               </div>
             </div>
-
           </div> <!-- modal-body -->
 
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="closeMenuForm()">Cancel</button>
             <button type="submit" class="btn btn-success" [disabled]="menuForm.invalid">Create</button>
           </div>
-
         </form>
       </div>
     </div>
   </div>
 
-  <!-- Lista menija -->
-  <div class="row g-4 mt-3">
-    <div *ngFor="let menu of menus" class="col-12 col-md-6 col-lg-4">
-      <div class="card shadow-sm h-100">
-        <div class="card-body d-flex flex-column">
-          <h5 class="card-title">{{ menu.name }}</h5>
-          <p class="card-text"><strong>Weekday:</strong> {{ menu.weekday }}</p>
-          <p class="card-text"><strong>Breakfast:</strong> {{ menu.breakfast.name }} - {{ menu.breakfast.price | currency }}</p>
-          <p class="card-text"><strong>Lunch:</strong> {{ menu.lunch.name }} - {{ menu.lunch.price | currency }}</p>
-          <p class="card-text"><strong>Dinner:</strong> {{ menu.dinner.name }} - {{ menu.dinner.price | currency }}</p>
-
-          <div class="mt-auto d-flex gap-2">
-            <button type="button" class="btn btn-primary flex-fill" (click)="viewMenu(menu)">Details</button>
-            <button type="button" class="btn btn-danger flex-fill" (click)="deleteMenu(menu); $event.stopPropagation()">Delete</button>
+  <!-- Pregled po danima u nedelji -->
+  <div *ngIf="menusByDay | keyvalue as days" class="accordion mt-4" id="menusAccordion">
+    <div class="accordion-item" *ngFor="let day of days">
+      <h2 class="accordion-header" id="heading-{{day.key}}">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                [attr.data-bs-target]="'#collapse-' + day.key" aria-expanded="false"
+                [attr.aria-controls]="'collapse-' + day.key">
+          {{ day.key }}
+        </button>
+      </h2>
+      <div [id]="'collapse-' + day.key" class="accordion-collapse collapse"
+           [attr.aria-labelledby]="'heading-' + day.key" data-bs-parent="#menusAccordion">
+        <div class="accordion-body">
+          <div class="row g-3">
+            <div *ngFor="let menu of day.value" class="col-12 col-md-6 col-lg-4">
+              <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                  <h5 class="card-title">{{ menu.name }}</h5>
+                  <p><strong>Breakfast:</strong> {{ menu.breakfast.name }} - {{ menu.breakfast.price | currency }}</p>
+                  <p><strong>Lunch:</strong> {{ menu.lunch.name }} - {{ menu.lunch.price | currency }}</p>
+                  <p><strong>Dinner:</strong> {{ menu.dinner.name }} - {{ menu.dinner.price | currency }}</p>
+                  <div class="mt-auto d-flex gap-2">
+                    <button type="button" class="btn btn-primary flex-fill" (click)="viewMenu(menu)">Details</button>
+                    <button type="button" class="btn btn-danger flex-fill"
+                            (click)="deleteMenu(menu); $event.stopPropagation()">Delete</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div *ngIf="day.value.length === 0" class="text-muted">
+              No menus for this day.
+            </div>
           </div>
         </div>
       </div>

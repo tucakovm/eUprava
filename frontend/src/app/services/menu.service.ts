@@ -19,4 +19,8 @@ export class MenuService {
   getAll(canteenId: string): Observable<Menu[]> {
     return this.http.get<Menu[]>(`${this.baseUrl}${canteenId}`);
   }
+
+  delete(id: string) {
+    return this.http.delete(`${this.baseUrl}${id}`);
+  }
 }

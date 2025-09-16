@@ -69,6 +69,19 @@ type MenuReview struct {
 	DinnerReview    int64     `json:"dinner_review"`
 }
 
+type PopularMeal struct {
+	MenuId        string `json:"menu_id"`
+	MenuName      string `json:"menu_name"`
+	TimesSelected int    `json:"times_selected"`
+}
+
+type MealHistory struct {
+	Id         string    `json:"id"`
+	MenuId     string    `json:"menu_id"`
+	MenuName   string    `json:"menu_name"`
+	SelectedAt time.Time `json:"selected_at"`
+}
+
 type DiningRepository interface {
 	GetAllCanteens() ([]Canteen, error)
 	CreateCanteen(c *Canteen) error
@@ -86,4 +99,6 @@ type DiningRepository interface {
 	GetMealByID(id string) (*Meal, error)
 	GetCanteenByID(id string) (*Canteen, error)
 	GetMenusByCanteenID(canteenID string) ([]*Menu, error)
+	DeleteMenuAndMealsByID(id string) error
+	GetPopularMealsByCanteen(canteenId string, limit int) ([]PopularMeal, error)
 }

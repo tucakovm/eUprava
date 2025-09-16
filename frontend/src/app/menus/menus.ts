@@ -22,6 +22,7 @@ export class MenusComponent implements OnInit {
   loading = false;
   error: string | null = null;
   canteenId: string | null = null;
+  menusByDay: { [day: string]: Menu[] } = {};
 
   // Modal kontrola
   isMenuFormOpen = false;
@@ -54,6 +55,7 @@ export class MenusComponent implements OnInit {
     this.menuService.getAll(canteenId).subscribe({
       next: (data) => {
         this.menus = data;
+        this.groupMenusByDay();
         this.loading = false;
         this.cd.detectChanges();
       },
@@ -62,6 +64,13 @@ export class MenusComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  groupMenusByDay() {
+    this.menusByDay = {};
+    for (let day of this.weekdays) {
+      this.menusByDay[day] = this.menus.filter(m => m.weekday === day);
+    }
   }
 
   openMenuForm() {
@@ -98,6 +107,8 @@ export class MenusComponent implements OnInit {
         console.log("menu push", created)
         this.menus.push(created);
         this.closeMenuForm();
+        this.cd.detectChanges();
+
       },
       error: (err) => {
         alert('Failed to create menu: ' + (err.message || err));
@@ -110,11 +121,13 @@ export class MenusComponent implements OnInit {
   }
 
   deleteMenu(menu: Menu) {
-    // if (confirm(`Are you sure you want to delete menu "${menu.name}"?`)) {
-    //   this.menuService.delete(menu.id).subscribe(() => {
-    //     this.menus = this.menus.filter(m => m.id !== menu.id);
-    //     this.cd.detectChanges();
-    //   });
-    // }
+     if (confirm(`Are you sure you want to delete menu "${menu.name}"?`)) {
+       this.menuService.delete(menu.id).subscribe(() => {
+         this.menus = this.menus.filter(m => m.id !== menu.id);
+         this.cd.detectChanges();
+       });
+     }
   }
+
+
 }

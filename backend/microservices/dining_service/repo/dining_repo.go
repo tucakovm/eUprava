@@ -51,6 +51,10 @@ func NewDiningRepo() (*DiningRepo, error) {
 		return nil, fmt.Errorf("seeding cantines failed: %w", err)
 	}
 
+	if err := repo.SeedMenusForCanteenA(); err != nil {
+		return nil, fmt.Errorf("seeding menus for Canteen A failed: %w", err)
+	}
+
 	return repo, nil
 }
 
@@ -94,6 +98,22 @@ func (r *DiningRepo) Migrate() error {
 			lunch_review INT DEFAULT 0,
 			dinner_review INT DEFAULT 0
 		);`,
+
+		`CREATE TABLE IF NOT EXISTS popular_meals (
+			id UUID PRIMARY KEY,
+			menu_id UUID NOT NULL REFERENCES menus(id) ON DELETE CASCADE,
+			canteen_id UUID NOT NULL REFERENCES canteens(id) ON DELETE CASCADE,
+			times_selected INT NOT NULL DEFAULT 0,
+			UNIQUE (menu_id, canteen_id)
+		);`,
+
+		// Meal history table
+		`CREATE TABLE IF NOT EXISTS meal_history (
+			id UUID PRIMARY KEY,
+			user_id UUID NOT NULL,
+			menu_id UUID NOT NULL REFERENCES menus(id) ON DELETE CASCADE,
+			selected_at TIMESTAMP NOT NULL DEFAULT NOW()
+		);`,
 	}
 
 	for _, q := range queries {
@@ -132,6 +152,44 @@ func (r *DiningRepo) SeedCanteens() error {
 		)
 		if err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *DiningRepo) SeedMenusForCanteenA() error {
+	// ID kantine A
+	canteenAID := uuid.MustParse("3fd5f339-8d75-4eee-81c9-25e1fd967faa")
+
+	days := []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+
+	for _, day := range days {
+		for i := 1; i <= 2; i++ { // po 2 menija dnevno
+			menu := domain.Menu{
+				Name:      fmt.Sprintf("Menu %s #%d", day, i),
+				CanteenId: canteenAID,
+				Weekday:   domain.Weekday(day),
+				Breakfast: domain.Meal{
+					Name:        fmt.Sprintf("Breakfast %s #%d", day, i),
+					Description: "Test breakfast",
+					Price:       3.5,
+				},
+				Lunch: domain.Meal{
+					Name:        fmt.Sprintf("Lunch %s #%d", day, i),
+					Description: "Test lunch",
+					Price:       5.0,
+				},
+				Dinner: domain.Meal{
+					Name:        fmt.Sprintf("Dinner %s #%d", day, i),
+					Description: "Test dinner",
+					Price:       6.5,
+				},
+			}
+
+			if err := r.CreateMenu(&menu); err != nil {
+				return fmt.Errorf("failed to create menu for %s: %w", day, err)
+			}
 		}
 	}
 
@@ -389,4 +447,133 @@ func (r *DiningRepo) GetMenusByCanteenID(canteenID string) ([]*domain.Menu, erro
 	}
 
 	return menus, nil
+}
+
+func (r *DiningRepo) DeleteMenuAndMealsByID(id string) error {
+	tx, err := r.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	var breakfastID, lunchID, dinnerID *string
+	err = tx.QueryRow(
+		`SELECT breakfast_id, lunch_id, dinner_id FROM menus WHERE id=$1`, id,
+	).Scan(&breakfastID, &lunchID, &dinnerID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("menu with id %s not found", id)
+		}
+		return err
+	}
+
+	result, err := tx.Exec(`DELETE FROM menus WHERE id=$1`, id)
+	if err != nil {
+		return err
+	}
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("menu with id %s not found", id)
+	}
+
+	mealIDs := []*string{breakfastID, lunchID, dinnerID}
+	for _, mealID := range mealIDs {
+		if mealID != nil {
+			_, err = tx.Exec(`DELETE FROM meals WHERE id=$1`, *mealID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *DiningRepo) AddMealSelection(userId, menuId string) error {
+	historyId := uuid.New()
+	_, err := r.DB.Exec(
+		`INSERT INTO meal_history (id, user_id, menu_id, selected_at)
+         VALUES ($1, $2, $3, $4)`,
+		historyId, userId, menuId, time.Now(),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert meal history: %w", err)
+	}
+
+	// Dobavi canteen_id za dati menu
+	var canteenId string
+	err = r.DB.QueryRow(`SELECT canteen_id FROM menus WHERE id = $1`, menuId).Scan(&canteenId)
+	if err != nil {
+		return fmt.Errorf("failed to fetch canteen_id: %w", err)
+	}
+
+	_, err = r.DB.Exec(
+		`INSERT INTO popular_meals (id, menu_id, canteen_id, times_selected)
+         VALUES ($1, $2, $3, 1)
+         ON CONFLICT (menu_id, canteen_id)
+         DO UPDATE SET times_selected = popular_meals.times_selected + 1`,
+		uuid.New(), menuId, canteenId,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update popular meals: %w", err)
+	}
+
+	return nil
+}
+
+func (r *DiningRepo) GetPopularMealsByCanteen(canteenId string, limit int) ([]domain.PopularMeal, error) {
+	rows, err := r.DB.Query(
+		`SELECT pm.menu_id, m.name, pm.times_selected
+		 FROM popular_meals pm
+		 JOIN menus m ON pm.menu_id = m.id
+		 WHERE pm.canteen_id = $1
+		 ORDER BY pm.times_selected DESC
+		 LIMIT $2`, canteenId, limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var popular []domain.PopularMeal
+	for rows.Next() {
+		var p domain.PopularMeal
+		if err := rows.Scan(&p.MenuId, &p.MenuName, &p.TimesSelected); err != nil {
+			return nil, err
+		}
+		popular = append(popular, p)
+	}
+	return popular, nil
+}
+
+func (r *DiningRepo) GetMealHistoryByUser(userId string) ([]domain.MealHistory, error) {
+	rows, err := r.DB.Query(
+		`SELECT mh.id, mh.menu_id, m.name, mh.selected_at
+		 FROM meal_history mh
+		 JOIN menus m ON mh.menu_id = m.id
+		 WHERE mh.user_id = $1
+		 ORDER BY mh.selected_at DESC`, userId,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var history []domain.MealHistory
+	for rows.Next() {
+		var h domain.MealHistory
+		if err := rows.Scan(&h.Id, &h.MenuId, &h.MenuName, &h.SelectedAt); err != nil {
+			return nil, err
+		}
+		history = append(history, h)
+	}
+	return history, nil
 }

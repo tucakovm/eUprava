@@ -138,6 +138,38 @@ func (dh *DiningHandler) CreateMenu(rw http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(rw).Encode(menu)
 }
 
+func (dh *DiningHandler) DeleteMenu(rw http.ResponseWriter, r *http.Request) {
+	manuId := mux.Vars(r)["id"]
+
+	err := dh.service.DeleteMenu(manuId)
+	if err != nil {
+		http.Error(rw, "Failed to delete manu", http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(rw).Encode(map[string]string{
+		"message": "Menu deleted successfully",
+		"id":      manuId,
+	})
+}
+
+func (dh *DiningHandler) GetPopularMeals(rw http.ResponseWriter, r *http.Request) {
+	canteenId := mux.Vars(r)["id"]
+
+	popMenus, err := dh.service.GetPopularMenus(canteenId)
+	if err != nil {
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
+	rw.Header().Set("Content-Type", "application/json")
+	dh.renderJSON(rw, popMenus)
+}
+
 func (dh *DiningHandler) renderJSON(w http.ResponseWriter, v interface{}) {
 	js, err := json.Marshal(v)
 

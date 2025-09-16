@@ -28,6 +28,7 @@ export class CanteenDetailsComponent implements OnInit {
   canteen: Canteen | null = null;
   loading = true; // Spinner startuje odmah
   error: string | null = null;
+  popularMeals: { menu_id: string; menu_name: string; times_selected: number }[] = [];
 
   ngOnInit(): void {
     this.loadCanteen();
@@ -52,6 +53,18 @@ export class CanteenDetailsComponent implements OnInit {
           open_at: new Date(c.open_at),
           close_at: new Date(c.close_at)
         };
+
+        // 👇 nakon učitavanja kantine, povuci popularne obroke
+        this.service.getPopularMeals(c.id).subscribe({
+          next: (meals) => {
+            this.popularMeals = meals;
+            this.cd.detectChanges();
+          },
+          error: (err) => {
+            console.error('Failed to load popular meals', err);
+          }
+        });
+
         this.loading = false;
         this.cd.detectChanges();
       },
@@ -61,8 +74,8 @@ export class CanteenDetailsComponent implements OnInit {
         this.cd.detectChanges();
       }
     });
-
   }
+
 
   goBack() {
     this.router.navigate(['/canteens']);
@@ -73,5 +86,5 @@ export class CanteenDetailsComponent implements OnInit {
       this.router.navigate(['/menus', this.canteen.id]);
     }
   }
-  
+
 }

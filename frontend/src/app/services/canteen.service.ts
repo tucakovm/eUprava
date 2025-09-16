@@ -33,5 +33,8 @@ export class CanteenService {
     return this.http.post<CanteenDto>(`${this.baseUrl}`, canteen);
   }
 
+  getPopularMeals(id: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/popular-meals/${id}`);
+  }
 
 }

@@ -57,3 +57,11 @@ func (ds *DiningService) CreateMenu(c *domain.MenuDTO) error {
 	}
 	return ds.repo.CreateMenu(m)
 }
+
+func (ds *DiningService) DeleteMenu(id string) error {
+	return ds.repo.DeleteMenuAndMealsByID(id)
+}
+
+func (ds *DiningService) GetPopularMenus(id string) ([]domain.PopularMeal, error) {
+	return ds.repo.GetPopularMealsByCanteen(id, 5)
+}
