@@ -5,6 +5,7 @@ import { CanteenService, CanteenDto } from '../services/canteen.service';
 import {Router, RouterModule} from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
+
 // Interfejs sa Date tipovima za frontend
 interface Canteen {
   id: string;

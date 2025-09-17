@@ -45,6 +45,9 @@ func NewHousingRepo() (*HousingRepo, error) {
 	if err := repo.Migrate(); err != nil {
 		return nil, err
 	}
+	if err := repo.InitData(context.Background()); err != nil {
+		return nil, err
+	}
 	return repo, nil
 }
 
@@ -113,6 +116,115 @@ func (dr *HousingRepo) Migrate() error {
 			return err
 		}
 	}
+	return tx.Commit()
+}
+
+// InitData ubacuje pocetne podatke (po 2 reda u svaku tabelu).
+// Ako tabela dom već ima redove, seed se preskače.
+func (dr *HousingRepo) InitData(ctx context.Context) error {
+	// Ako već imamo bar jedan dom, pretpostavimo da je baza seed-ovana.
+	var cnt int
+	if err := dr.DB.QueryRowContext(ctx, `SELECT COUNT(1) FROM dom`).Scan(&cnt); err != nil {
+		return err
+	}
+	if cnt > 0 {
+		return nil
+	}
+
+	tx, err := dr.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		// sigurnosni rollback ako nije commitovano
+		_ = tx.Rollback()
+	}()
+
+	// --- IDs koje mi upravljamo, da bismo lako povezali redove ---
+	dom1ID := uuid.New()
+	dom2ID := uuid.New()
+
+	soba101ID := uuid.New() // u Dom 1
+	soba102ID := uuid.New() // u Dom 1
+
+	studentMarkoID := uuid.New()
+	studentJelenaID := uuid.New()
+
+	rec1ID := uuid.New()
+	rec2ID := uuid.New()
+
+	kvar1ID := uuid.New()
+	kvar2ID := uuid.New()
+
+	karticaMarkoID := uuid.New()
+	karticaJelenaID := uuid.New()
+
+	// --- Dom (2) ---
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO dom (id, naziv, adresa) VALUES 
+		 ($1,'Dom Studenata 1','Bulevar Oslobodjenja 12'),
+		 ($2,'Dom Studenata 2','Cara Dusana 45')`,
+		dom1ID, dom2ID,
+	); err != nil {
+		return err
+	}
+
+	// --- Soba (2) u Dom 1 ---
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO soba (id, broj, slobodna, dom_id) VALUES
+		 ($1,'101', true,  $3),
+		 ($2,'102', false, $3)`,
+		soba101ID, soba102ID, dom1ID,
+	); err != nil {
+		return err
+	}
+
+	// --- Student (2) (Marko u sobi 102, Jelena bez sobe) ---
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO student (id, ime, prezime, soba_id) VALUES
+		 ($1,'Marko','Markovic',$3),
+		 ($2,'Jelena','Jovanovic',NULL)`,
+		studentMarkoID, studentJelenaID, soba102ID,
+	); err != nil {
+		return err
+	}
+
+	// --- Recenzija Sobe (2) za sobu 102, od Marka i Jelene ---
+	kom1 := "Odlična soba, sve preporuke!"
+	kom2 := "Moglo bi biti bolje, često je bučno."
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO recenzija_sobe (id, ocena, komentar, soba_id, autor_id) VALUES
+		 ($1, 5, $3, $5, $6),
+		 ($2, 3, $4, $5, $7)`,
+		rec1ID, rec2ID,
+		&kom1, &kom2, // *string -> NULLable
+		soba102ID, studentMarkoID, studentJelenaID,
+	); err != nil {
+		return err
+	}
+
+	// --- Kvar (2) (jedan "prijavljen" i jedan "u_toku") ---
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO kvar (id, opis, status, soba_id, prijavio_id) VALUES
+		 ($1, 'Pokvaren radijator', 'prijavljen', $3, $5),
+		 ($2, 'Ne radi internet',  'u_toku',    $4, $6)`,
+		kvar1ID, kvar2ID,
+		soba102ID, soba101ID,
+		studentMarkoID, studentJelenaID,
+	); err != nil {
+		return err
+	}
+
+	// --- Studentska kartica (2) ---
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO studentska_kartica (id, stanje, student_id) VALUES
+		 ($1, 1500.00, $3),
+		 ($2,  800.00, $4)`,
+		karticaMarkoID, karticaJelenaID, studentMarkoID, studentJelenaID,
+	); err != nil {
+		return err
+	}
+
 	return tx.Commit()
 }
 
