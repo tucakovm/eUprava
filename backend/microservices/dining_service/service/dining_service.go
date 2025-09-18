@@ -99,3 +99,11 @@ func (ds *DiningService) GetMenu(id string) (*domain.Menu, error) {
 func (ds *DiningService) GetTopRatedMeals() ([]domain.MenuRating, error) {
 	return ds.repo.GetTop3RatedMeals(3)
 }
+
+func (ds *DiningService) CreateMealHistory(mh *domain.MealHistory, userId string) error {
+	return ds.repo.CreateMealHistory(mh, userId)
+}
+
+func (ds *DiningService) IncrementPopularMeal(menuId, canteenId uuid.UUID) error {
+	return ds.repo.IncrementPopularMeal(menuId, canteenId)
+}

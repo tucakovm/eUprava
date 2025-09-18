@@ -684,6 +684,19 @@ func (r *DiningRepo) GetPopularMealsByCanteen(canteenId string, limit int) ([]do
 	return popular, nil
 }
 
+func (r *DiningRepo) IncrementPopularMeal(menuId, canteenId uuid.UUID) error {
+	_, err := r.DB.Exec(
+		`INSERT INTO popular_meals (id, menu_id, canteen_id, times_selected)
+		 VALUES ($1, $2, $3, 1)
+		 ON CONFLICT (menu_id, canteen_id)
+		 DO UPDATE SET times_selected = popular_meals.times_selected + 1`,
+		uuid.New(),
+		menuId,
+		canteenId,
+	)
+	return err
+}
+
 func (r *DiningRepo) GetMealHistoryByUser(userId string) ([]domain.MealHistory, error) {
 	rows, err := r.DB.Query(
 		`SELECT mh.id, mh.menu_id, m.name, mh.selected_at
@@ -706,6 +719,20 @@ func (r *DiningRepo) GetMealHistoryByUser(userId string) ([]domain.MealHistory, 
 		history = append(history, h)
 	}
 	return history, nil
+}
+
+func (r *DiningRepo) CreateMealHistory(mh *domain.MealHistory, userId string) error {
+	mh.Id = uuid.New().String()
+	if mh.SelectedAt.IsZero() {
+		mh.SelectedAt = time.Now()
+	}
+
+	_, err := r.DB.Exec(
+		`INSERT INTO meal_history (id, user_id, menu_id, selected_at)
+		 VALUES ($1, $2, $3, $4)`,
+		mh.Id, userId, mh.MenuId, mh.SelectedAt,
+	)
+	return err
 }
 
 func (r *DiningRepo) GetMenuReviewByMenuAndUser(menuId, userId string) (*domain.MenuReview, error) {

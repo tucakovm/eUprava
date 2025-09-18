@@ -40,4 +40,9 @@ export class MenuService {
     const headers = new HttpHeaders({ 'X-Student-ID': userId });
     return this.http.get<MenuWithCard>(`${this.baseUrl2}${menuId}`, { headers });
   }
+
+  takeMeal(payload: { studentId: string; delta: number }) {
+    return this.http.post("http://localhost:8001/api/meal/", payload);
+  }
+
 }

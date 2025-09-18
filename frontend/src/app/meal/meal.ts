@@ -18,6 +18,7 @@ export class MealComponent implements OnInit {
   form!: FormGroup;
   totalPrice = 0;
   studentId = null;
+  menuId = null;
 
   private menuService = inject(MenuService);
   private route = inject(ActivatedRoute);
@@ -25,8 +26,9 @@ export class MealComponent implements OnInit {
   private authService = inject(AuthService);
 
   ngOnInit() {
-    const menuId = this.route.snapshot.paramMap.get('menuId');
-    if (!menuId) {
+     // @ts-ignore
+    this.menuId = this.route.snapshot.paramMap.get('menuId');
+    if (!this.menuId) {
       console.error('Menu ID not found');
       return;
     }
@@ -48,7 +50,7 @@ export class MealComponent implements OnInit {
 
     console.log("user ID:", this.studentId);
 
-    this.menuService.getMenu(menuId, this.studentId).subscribe({
+    this.menuService.getMenu(this.menuId, this.studentId).subscribe({
       next: (res: MenuWithCard) => {
         this.menu = res.menu;
         this.studentCard = res.card;
@@ -79,9 +81,22 @@ export class MealComponent implements OnInit {
       return;
     }
 
-    // Ako ima dovoljno novca
-    console.log('Selected meals total:', this.totalPrice);
-    // ovde možeš da pozoveš service za kreiranje order-a
+    const payload = {
+      studentId: this.studentCard.studentID,
+      delta: -this.totalPrice,
+      menuId: this.menuId
+    };
+
+    this.menuService.takeMeal(payload).subscribe({
+      next: res => {
+        console.log("Purchase successful:", res);
+        alert("Meal successfully purchased!");
+      },
+      error: err => {
+        console.error("Purchase failed:", err);
+        alert("Error while purchasing meal");
+      }
+    });
   }
 
 }

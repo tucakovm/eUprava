@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"bytes"
 	"dining/domain"
 	"dining/service"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -329,6 +331,57 @@ func (dh *DiningHandler) GetTopRatedMeals(w http.ResponseWriter, r *http.Request
 	if err := json.NewEncoder(w).Encode(topMeals); err != nil {
 		log.Println("JSON encode error:", err)
 	}
+}
+
+func (dh *DiningHandler) TakeMeal(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		StudentID string  `json:"studentId"`
+		Delta     float64 `json:"delta"`
+		MenuId    string  `json:"menuId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		http.Error(w, "bad json", http.StatusBadRequest)
+		return
+	}
+
+	client := &http.Client{Timeout: 3 * time.Second}
+
+	url := "http://housing-server:8003/api/housing/students/cards/balance"
+
+	reqBody, _ := json.Marshal(in)
+	resp, err := client.Post(url, "application/json", bytes.NewBuffer(reqBody))
+	if err != nil {
+		http.Error(w, "failed to contact housing service", http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		http.Error(w, "failed to update balance", resp.StatusCode)
+		return
+	}
+
+	menu, _ := dh.service.GetMenu(in.MenuId)
+
+	mh := &domain.MealHistory{
+		MenuId:     in.MenuId,
+		MenuName:   menu.Name,
+		SelectedAt: time.Time{},
+	}
+	err = dh.service.CreateMealHistory(mh, in.StudentID)
+	if err != nil {
+		fmt.Println("Warning: failed to create meal history:", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	err = dh.service.IncrementPopularMeal(menu.Id, menu.CanteenId)
+	if err != nil {
+		fmt.Println("Warning: failed to increment popular meal:", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	io.Copy(w, resp.Body)
 }
 
 func (dh *DiningHandler) renderJSON(w http.ResponseWriter, v interface{}) {

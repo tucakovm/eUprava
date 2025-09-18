@@ -135,4 +135,6 @@ type DiningRepository interface {
 	UpdateMenuReview(review *MenuReview) error
 	GetMenuWithMealsByID(menuId string) (*Menu, error)
 	GetTop3RatedMeals(limit int) ([]MenuRating, error)
+	CreateMealHistory(mh *MealHistory, userId string) error
+	IncrementPopularMeal(menuId, canteenId uuid.UUID) error
 }
