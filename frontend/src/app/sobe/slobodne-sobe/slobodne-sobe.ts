@@ -42,4 +42,7 @@ export class SlobodneSobeComponent {
   toAssign(domId: string, broj: string) {
     this.router.navigate(['/rooms/assign'], { queryParams: { domId, broj } });
   }
+  toDetails(id:string) {
+    this.router.navigate(['/rooms/detail'], { queryParams: { id } });
+  }
 }

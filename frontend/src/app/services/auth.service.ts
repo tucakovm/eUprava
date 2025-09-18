@@ -19,7 +19,7 @@ export class AuthService {
         map(res => {
           if (typeof window !== 'undefined') {
             localStorage.setItem('token', res.token);
-            localStorage.setItem('user', JSON.stringify(res.user.id));
+            localStorage.setItem('user', JSON.stringify(res.user.username));
           }
           return res;
         }),

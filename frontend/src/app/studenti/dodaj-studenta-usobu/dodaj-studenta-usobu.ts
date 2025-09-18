@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { HousingService } from '../../services/housing.service';
 import { Student } from '../../model/housing';
+import { finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-assign-student',
@@ -25,8 +26,7 @@ export class DodajStudentaUSobuComponent {
   created?: Student;
 
   form = this.fb.group({
-    ime: ['', [Validators.required, Validators.minLength(2)]],
-    prezime: ['', [Validators.required, Validators.minLength(2)]],
+    username: ['', [Validators.required, Validators.minLength(3)]],
   });
 
   submit() {
@@ -42,22 +42,23 @@ export class DodajStudentaUSobuComponent {
       return;
     }
 
-    const { ime, prezime } = this.form.getRawValue();
+    const { username } = this.form.getRawValue();
     this.loading = true;
 
-    this.api.assignStudentToRoom(this.domId, this.broj, ime!, prezime!).subscribe({
-      next: (st) => {
-        this.created = st;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.loading = false;
-        // backend vraća 409 kada je soba popunjena
-        if (err?.status === 409) this.errorMsg = err?.error || 'Soba je popunjena.';
-        else this.errorMsg = 'Došlo je do greške pri upisu studenta.';
-        console.error(err);
-      },
-    });
+    this.api.assignStudentToRoom(this.domId, this.broj, username!)
+      .pipe(finalize(() => this.loading = false))
+      .subscribe({
+        next: (st) => {
+          this.created = st;
+          // odmah nazad na slobodne sobe
+          this.backToFree();
+        },
+        error: (err) => {
+          if (err?.status === 409) this.errorMsg = err?.error || 'Upis nije moguć.';
+          else this.errorMsg = 'Došlo je do greške pri upisu studenta.';
+          console.error(err);
+        },
+      });
   }
 
   backToFree() {

@@ -32,10 +32,10 @@
             <table class="table table-hover table-striped align-middle mb-0">
               <thead class="table-light">
                 <tr>
-                  <th style="width:25%">Broj</th>
-                  <th style="width:25%">Status</th>
-                  <th style="width:25%">Kapacitet</th>
-                  <th class="text-end" style="width:25%"></th>
+                  <th style="width:20%">Broj</th>
+                  <th style="width:20%">Status</th>
+                  <th style="width:20%">Kapacitet</th>
+                  <th class="text-end" style="width:40%"></th>
                 </tr>
               </thead>
               <tbody>
@@ -51,10 +51,21 @@
                       {{ r.kapacitet}}
                     </span>
                   </td>
+                  <td>
+                    <span class="fw-semibold">
+                      ID: {{ r.id}}
+                    </span>
+                  </td>
+                    <td class="text-end">
+                    <button class="btn btn-primary btn-sm"
+                            (click)="toDetails(r.id)">
+                      View details
+                    </button>
+                  </td>
                   <td class="text-end">
                     <button class="btn btn-primary btn-sm"
                             (click)="toAssign(s.domId, r.broj)">
-                      Assign student to room
+                      Assign student
                     </button>
                   </td>
                 </tr>

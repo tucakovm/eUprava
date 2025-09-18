@@ -10,6 +10,7 @@ export interface Student {
   id: string;
   ime: string;
   prezime: string;
+  username:string
   sobaId?: string | null;
 }
 
@@ -29,7 +30,7 @@ export interface RecenzijaSobe {
   ocena: number;
   komentar?: string | null;
   sobaId: string;
-  autorId: string;
+  autorUsername: string;
 }
 
 export type StatusKvara = 'prijavljen' | 'u_toku' | 'resen';
@@ -39,11 +40,11 @@ export interface Kvar {
   opis: string;
   status: StatusKvara;
   sobaId: string;
-  prijavioId: string;
+  prijavioUsername: string;
 }
 
 export interface StudentskaKartica {
   id: string;
   stanje: number;
-  studentID: string; // server šalje 'studentID' (camel case kao u domen modelu)
+  studentUsername: string; // server šalje 'studentID' (camel case kao u domen modelu)
 }
