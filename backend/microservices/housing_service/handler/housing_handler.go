@@ -8,6 +8,7 @@ import (
 
 	"housing/domain"
 	"housing/service"
+	"log"
 )
 
 type HousingHandler struct {
@@ -18,9 +19,7 @@ func NewHousingHandler(s *service.Services) *HousingHandler {
 	return &HousingHandler{service: s}
 }
 
-/* =========================
-   Helpers
-   ========================= */
+/* ========================= Helpers ========================= */
 
 func (h *HousingHandler) renderJSON(w http.ResponseWriter, v interface{}) {
 	js, err := json.Marshal(v)
@@ -36,27 +35,59 @@ func (h *HousingHandler) badRequest(w http.ResponseWriter, msg string) {
 	http.Error(w, msg, http.StatusBadRequest)
 }
 
-/* =========================
-   Students
-   ========================= */
+/* ========================= Domovi (read) ========================= */
+
+// GET /dom?id=<uuid>
+func (h *HousingHandler) GetDom(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		h.badRequest(w, "missing id")
+		return
+	}
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		h.badRequest(w, "invalid id")
+		return
+	}
+
+	dom, err := h.service.GetDom(r.Context(), id)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	h.renderJSON(w, dom)
+}
+
+// GET /doms
+func (h *HousingHandler) ListDomovi(w http.ResponseWriter, r *http.Request) {
+	domovi, err := h.service.GetAllDomovi(r.Context())
+	if err != nil {
+		http.Error(w, "database exception", http.StatusInternalServerError)
+		return
+	}
+	h.renderJSON(w, domovi)
+}
+
+/* ========================= Students ========================= */
 
 // POST /students
-// Body: { "ime": "Marko", "prezime": "Markovic" }
+// Body: { "ime": "Marko", "prezime": "Markovic", "username": "marko123" }
 func (h *HousingHandler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Ime     string `json:"ime"`
-		Prezime string `json:"prezime"`
+		Ime      string `json:"ime"`
+		Prezime  string `json:"prezime"`
+		Username string `json:"username"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		h.badRequest(w, "bad json")
 		return
 	}
-	if in.Ime == "" || in.Prezime == "" {
-		h.badRequest(w, "ime i prezime su obavezni")
+	if in.Ime == "" || in.Prezime == "" || in.Username == "" {
+		h.badRequest(w, "ime, prezime i username su obavezni")
 		return
 	}
 
-	st, err := h.service.CreateStudent(r.Context(), in.Ime, in.Prezime)
+	st, err := h.service.CreateStudent(r.Context(), in.Ime, in.Prezime, in.Username)
 	if err != nil {
 		http.Error(w, "database exception", http.StatusInternalServerError)
 		return
@@ -67,20 +98,19 @@ func (h *HousingHandler) CreateStudent(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /rooms/assign
-// Body: { "domId": "...uuid...", "broj": "101", "ime": "Marko", "prezime": "Markovic" }
+// Body: { "domId": "...uuid...", "broj": "101", "username": "nikola123" }
 func (h *HousingHandler) AssignStudentToRoom(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		DomID   string `json:"domId"`
-		Broj    string `json:"broj"`
-		Ime     string `json:"ime"`
-		Prezime string `json:"prezime"`
+		DomID    string `json:"domId"`
+		Broj     string `json:"broj"`
+		Username string `json:"username"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		h.badRequest(w, "bad json")
 		return
 	}
-	if in.DomID == "" || in.Broj == "" || in.Ime == "" || in.Prezime == "" {
-		h.badRequest(w, "domId, broj, ime i prezime su obavezni")
+	if in.DomID == "" || in.Broj == "" || in.Username == "" {
+		h.badRequest(w, "domId, broj i username su obavezni")
 		return
 	}
 	domID, err := uuid.Parse(in.DomID)
@@ -89,9 +119,9 @@ func (h *HousingHandler) AssignStudentToRoom(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	st, err := h.service.UpisiStudentaUSobu(r.Context(), domID, in.Broj, in.Ime, in.Prezime)
+	st, err := h.service.UpisiPostojecegStudentaUSobu(r.Context(), domID, in.Broj, in.Username)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusConflict) // npr. "soba nije slobodna"
+		http.Error(w, err.Error(), http.StatusConflict)
 		return
 	}
 
@@ -100,7 +130,7 @@ func (h *HousingHandler) AssignStudentToRoom(w http.ResponseWriter, r *http.Requ
 }
 
 // POST /students/release
-// Body: { "studentId": "...uuid..." }
+// Body: { "studentId": "...uuid..." }  // ovo ostaje po ID-u (interni admin-endpoint)
 func (h *HousingHandler) ReleaseStudentRoom(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		StudentID string `json:"studentId"`
@@ -123,32 +153,24 @@ func (h *HousingHandler) ReleaseStudentRoom(w http.ResponseWriter, r *http.Reque
 	h.renderJSON(w, map[string]string{"status": "ok"})
 }
 
-/* =========================
-   Studentska kartica (NOVO)
-   ========================= */
+/* ========================= Studentska kartica (po username) ========================= */
 
 // POST /students/cards
-// Body: { "studentId": "...uuid..." }
-// Kreira karticu ako ne postoji, inače vraća postojeću
+// Body: { "studentUsername": "nikola123" }
 func (h *HousingHandler) CreateStudentCardIfMissing(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		StudentID string `json:"studentId"`
+		StudentUsername string `json:"studentUsername"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		h.badRequest(w, "bad json")
 		return
 	}
-	if in.StudentID == "" {
-		h.badRequest(w, "studentId je obavezan")
-		return
-	}
-	sid, err := uuid.Parse(in.StudentID)
-	if err != nil {
-		h.badRequest(w, "invalid studentId")
+	if in.StudentUsername == "" {
+		h.badRequest(w, "studentUsername je obavezan")
 		return
 	}
 
-	card, err := h.service.KreirajStudentskuKarticuAkoNema(r.Context(), sid)
+	card, err := h.service.KreirajStudentskuKarticuAkoNema(r.Context(), in.StudentUsername)
 	if err != nil {
 		http.Error(w, "database exception", http.StatusInternalServerError)
 		return
@@ -157,21 +179,15 @@ func (h *HousingHandler) CreateStudentCardIfMissing(w http.ResponseWriter, r *ht
 	h.renderJSON(w, card)
 }
 
-// GET /students/cards?studentId=<uuid>
-// Vraća karticu za datog studenta
+// GET /students/cards?studentUsername=<username>
 func (h *HousingHandler) GetStudentCard(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("studentId")
-	if idStr == "" {
-		h.badRequest(w, "missing studentId")
-		return
-	}
-	sid, err := uuid.Parse(idStr)
-	if err != nil {
-		h.badRequest(w, "invalid studentId")
+	u := r.URL.Query().Get("studentUsername")
+	if u == "" {
+		h.badRequest(w, "missing studentUsername")
 		return
 	}
 
-	card, err := h.service.GetStudentskaKarticaByStudent(r.Context(), sid)
+	card, err := h.service.GetStudentskaKarticaByStudent(r.Context(), u)
 	if err != nil {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
@@ -180,27 +196,22 @@ func (h *HousingHandler) GetStudentCard(w http.ResponseWriter, r *http.Request) 
 }
 
 // POST /students/cards/balance
-// Body: { "studentId": "...uuid...", "delta": 500.0 }  // pozitivan = dopuna, negativan = zaduženje
+// Body: { "studentUsername": "nikola123", "delta": 500.0 }
 func (h *HousingHandler) UpdateStudentCardBalance(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		StudentID string  `json:"studentId"`
-		Delta     float64 `json:"delta"`
+		StudentUsername string  `json:"studentUsername"`
+		Delta           float64 `json:"delta"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		h.badRequest(w, "bad json")
 		return
 	}
-	if in.StudentID == "" {
-		h.badRequest(w, "studentId je obavezan")
-		return
-	}
-	sid, err := uuid.Parse(in.StudentID)
-	if err != nil {
-		h.badRequest(w, "invalid studentId")
+	if in.StudentUsername == "" {
+		h.badRequest(w, "studentUsername je obavezan")
 		return
 	}
 
-	card, err := h.service.AzurirajStanjeStudentskeKartice(r.Context(), sid, in.Delta)
+	card, err := h.service.AzurirajStanjeStudentskeKartice(r.Context(), in.StudentUsername, in.Delta)
 	if err != nil {
 		http.Error(w, "database exception", http.StatusInternalServerError)
 		return
@@ -208,18 +219,16 @@ func (h *HousingHandler) UpdateStudentCardBalance(w http.ResponseWriter, r *http
 	h.renderJSON(w, card)
 }
 
-/* =========================
-   Recenzije
-   ========================= */
+/* ========================= Recenzije ========================= */
 
 // POST /rooms/reviews
-// Body: { "sobaId": "...uuid...", "autorId": "...uuid...", "ocena": 5, "komentar": "..." }
+// Body: { "sobaId": "...uuid...", "autorUsername": "nikola123", "ocena": 5, "komentar": "..." }
 func (h *HousingHandler) AddRoomReview(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		SobaID   string  `json:"sobaId"`
-		AutorID  string  `json:"autorId"`
-		Ocena    int     `json:"ocena"`
-		Komentar *string `json:"komentar"`
+		SobaID        string  `json:"sobaId"`
+		AutorUsername string  `json:"autorUsername"`
+		Ocena         int     `json:"ocena"`
+		Komentar      *string `json:"komentar"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		h.badRequest(w, "bad json")
@@ -230,9 +239,8 @@ func (h *HousingHandler) AddRoomReview(w http.ResponseWriter, r *http.Request) {
 		h.badRequest(w, "invalid sobaId")
 		return
 	}
-	autorID, err := uuid.Parse(in.AutorID)
-	if err != nil {
-		h.badRequest(w, "invalid autorId")
+	if in.AutorUsername == "" {
+		h.badRequest(w, "autorUsername je obavezan")
 		return
 	}
 	if in.Ocena < 1 || in.Ocena > 5 {
@@ -240,7 +248,7 @@ func (h *HousingHandler) AddRoomReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rc, err := h.service.DodajRecenziju(r.Context(), sobaID, autorID, in.Ocena, in.Komentar)
+	rc, err := h.service.DodajRecenziju(r.Context(), sobaID, in.AutorUsername, in.Ocena, in.Komentar)
 	if err != nil {
 		http.Error(w, "database exception", http.StatusInternalServerError)
 		return
@@ -250,17 +258,15 @@ func (h *HousingHandler) AddRoomReview(w http.ResponseWriter, r *http.Request) {
 	h.renderJSON(w, rc)
 }
 
-/* =========================
-   Kvarovi
-   ========================= */
+/* ========================= Kvarovi ========================= */
 
 // POST /rooms/faults
-// Body: { "sobaId": "...uuid...", "prijavioId": "...uuid...", "opis": "..." }
+// Body: { "sobaId": "...uuid...", "prijavioUsername": "marko123", "opis": "..." }
 func (h *HousingHandler) ReportFault(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		SobaID     string `json:"sobaId"`
-		PrijavioID string `json:"prijavioId"`
-		Opis       string `json:"opis"`
+		SobaID           string `json:"sobaId"`
+		PrijavioUsername string `json:"prijavioUsername"`
+		Opis             string `json:"opis"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		h.badRequest(w, "bad json")
@@ -275,13 +281,12 @@ func (h *HousingHandler) ReportFault(w http.ResponseWriter, r *http.Request) {
 		h.badRequest(w, "invalid sobaId")
 		return
 	}
-	prijavioID, err := uuid.Parse(in.PrijavioID)
-	if err != nil {
-		h.badRequest(w, "invalid prijavioId")
+	if in.PrijavioUsername == "" {
+		h.badRequest(w, "prijavioUsername je obavezan")
 		return
 	}
 
-	k, err := h.service.PrijaviKvar(r.Context(), sobaID, prijavioID, in.Opis)
+	k, err := h.service.PrijaviKvar(r.Context(), sobaID, in.PrijavioUsername, in.Opis)
 	if err != nil {
 		http.Error(w, "database exception", http.StatusInternalServerError)
 		return
@@ -307,15 +312,14 @@ func (h *HousingHandler) ChangeFaultStatus(w http.ResponseWriter, r *http.Reques
 		h.badRequest(w, "invalid kvarId")
 		return
 	}
-	status := domain.StatusKvara(in.Status)
-	switch status {
-	case domain.StatusPrijavljen, domain.StatusUToku, domain.StatusResen:
+	switch in.Status {
+	case string(domain.StatusPrijavljen), string(domain.StatusUToku), string(domain.StatusResen):
 	default:
 		h.badRequest(w, "status mora biti: prijavljen | u_toku | resen")
 		return
 	}
 
-	if err := h.service.PromeniStatusKvara(r.Context(), kid, status); err != nil {
+	if err := h.service.PromeniStatusKvara(r.Context(), kid, domain.StatusKvara(in.Status)); err != nil {
 		http.Error(w, "database exception", http.StatusInternalServerError)
 		return
 	}
@@ -323,9 +327,7 @@ func (h *HousingHandler) ChangeFaultStatus(w http.ResponseWriter, r *http.Reques
 	h.renderJSON(w, map[string]string{"status": "ok"})
 }
 
-/* =========================
-   Sobe (read)
-   ========================= */
+/* ========================= Sobe (read) ========================= */
 
 // GET /rooms?id=<uuid>
 func (h *HousingHandler) GetRoom(w http.ResponseWriter, r *http.Request) {
@@ -372,7 +374,6 @@ func (h *HousingHandler) GetRoomDetail(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /rooms/free?domId=<uuid>
-// Vraća sve slobodne sobe u okviru zadatog doma
 func (h *HousingHandler) ListFreeRooms(w http.ResponseWriter, r *http.Request) {
 	domIDStr := r.URL.Query().Get("domId")
 	if domIDStr == "" {
@@ -387,6 +388,7 @@ func (h *HousingHandler) ListFreeRooms(w http.ResponseWriter, r *http.Request) {
 
 	rooms, err := h.service.ListSlobodneSobe(r.Context(), domID)
 	if err != nil {
+		log.Printf("ListSlobodneSobe failed: %v", err)
 		http.Error(w, "database exception", http.StatusInternalServerError)
 		return
 	}

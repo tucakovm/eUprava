@@ -1,0 +1,151 @@
+<div class="container py-3" *ngIf="vm$ | async as vm">
+  <!-- Loading -->
+  <div *ngIf="vm.loading" class="alert alert-warning">Učitavanje...</div>
+
+  <!-- Error -->
+  <div *ngIf="!vm.loading && vm.error" class="alert alert-danger">
+    {{ vm.error }}
+  </div>
+
+  <!-- Content -->
+  <ng-container *ngIf="!vm.loading && !vm.error && vm.soba as s">
+    <div class="card mb-3">
+      <div class="card-body">
+        <h4 class="card-title">Soba {{ s.broj }}</h4>
+        <p class="card-text mb-1">
+          <span class="badge" [ngClass]="s.slobodna ? 'bg-success' : 'bg-danger'">
+            {{ s.slobodna ? 'Slobodna' : 'Zauzeta' }}
+          </span>
+        </p>
+        <p class="card-text text-muted">
+          ID: {{ s.id }} | Dom: {{ s.domId }}
+        </p>
+        <div class="row text-center">
+          <div class="col">
+            <div class="fw-bold">{{ s.kapacitet }}</div>
+            <small class="text-muted">Kapacitet</small>
+          </div>
+          <div class="col">
+            <div class="fw-bold">{{ vm.zauzeto }}</div>
+            <small class="text-muted">Zauzeto</small>
+          </div>
+          <div class="col">
+            <div class="fw-bold">{{ vm.slobodno }}</div>
+            <small class="text-muted">Slobodnih</small>
+          </div>
+          <div class="col" *ngIf="vm.avgOcena">
+            <div class="fw-bold">{{ vm.avgOcena }}</div>
+            <small class="text-muted">Prosečna ocena</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Studenti -->
+    <div class="card mb-3">
+      <div class="card-header">Studenti</div>
+      <div class="card-body p-0">
+        <div *ngIf="!s.studenti?.length" class="p-3 text-muted">
+          Nema prijavljenih studenata.
+        </div>
+        <table
+          *ngIf="s.studenti?.length"
+          class="table table-sm mb-0 table-striped"
+        >
+          <thead class="table-light">
+            <tr>
+              <th>Ime</th>
+              <th>Prezime</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let st of s.studenti; trackBy: trackByStudent">
+              <td>{{ st.ime }}</td>
+              <td>{{ st.prezime }}</td>
+              <td class="text-muted">{{ st.id }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recenzije -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>
+      Recenzije
+      <span *ngIf="vm.avgOcena" class="badge bg-secondary ms-2">
+        Prosek {{ vm.avgOcena }}
+      </span>
+    </div>
+    <!-- Novo dugme -->
+    <button
+      class="btn btn-sm btn-primary"
+      [routerLink]="['/rooms/review']"
+      [queryParams]="{ sobaId: s.id }"
+    >
+      Ostavi recenziju
+    </button>
+  </div>
+
+  <ul class="list-group list-group-flush" *ngIf="s.recenzije?.length">
+    <li
+      class="list-group-item"
+      *ngFor="let r of s.recenzije; trackBy: trackById"
+    >
+      <div class="d-flex justify-content-between">
+        <div>
+          <strong>Ocena: {{ r.ocena }}</strong>
+          <div class="text-muted small">Autor: {{ r.autorUsername }}</div>
+        </div>
+        <div *ngIf="r.komentar" class="fst-italic">
+          “{{ r.komentar }}”
+        </div>
+      </div>
+    </li>
+  </ul>
+  <div *ngIf="!s.recenzije?.length" class="p-3 text-muted">
+    Nema recenzija.
+  </div>
+</div>
+
+
+    <!-- Kvarovi -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>Kvarovi</div>
+    <button
+      class="btn btn-sm btn-outline-danger"
+      [routerLink]="['/rooms/fault']"
+      [queryParams]="{ sobaId: s.id }"
+    >
+      Prijavi kvar
+    </button>
+  </div>
+
+  <ul class="list-group list-group-flush" *ngIf="s.kvarovi?.length">
+    <li
+      class="list-group-item d-flex justify-content-between align-items-center"
+      *ngFor="let k of s.kvarovi; trackBy: trackById"
+    >
+      <div>
+        <div class="fw-bold">{{ k.opis }}</div>
+        <small class="text-muted">Prijavio: {{ k.prijavioUsername }}</small>
+      </div>
+      <span [class]="statusClass(k.status)">
+        {{
+          k.status === 'prijavljen'
+            ? 'Prijavljen'
+            : k.status === 'u_toku'
+            ? 'U toku'
+            : 'Rešen'
+        }}
+      </span>
+    </li>
+  </ul>
+
+  <div *ngIf="!s.kvarovi?.length" class="p-3 text-muted">
+    Nema prijavljenih kvarova.
+  </div>
+</div>

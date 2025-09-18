@@ -15,6 +15,7 @@ type Soba struct {
 	ID        uuid.UUID       `json:"id"`
 	Broj      string          `json:"broj"`
 	Slobodna  bool            `json:"slobodna"`
+	Kapacitet int             `json:"kapacitet"`
 	DomID     uuid.UUID       `json:"domId"`
 	Studenti  []Student       `json:"studenti,omitempty"`
 	Recenzije []RecenzijaSobe `json:"recenzije,omitempty"`
@@ -22,18 +23,19 @@ type Soba struct {
 }
 
 type Student struct {
-	ID      uuid.UUID  `json:"id"`
-	Ime     string     `json:"ime"`
-	Prezime string     `json:"prezime"`
-	SobaID  *uuid.UUID `json:"sobaId,omitempty"`
+	ID       uuid.UUID  `json:"id"`
+	Ime      string     `json:"ime"`
+	Prezime  string     `json:"prezime"`
+	Username string     `json:"username"`
+	SobaID   *uuid.UUID `json:"sobaId,omitempty"`
 }
 
 type RecenzijaSobe struct {
-	ID       uuid.UUID `json:"id"`
-	Ocena    int       `json:"ocena"`
-	Komentar *string   `json:"komentar,omitempty"`
-	SobaID   uuid.UUID `json:"sobaId"`
-	AutorID  uuid.UUID `json:"autorId"`
+	ID            uuid.UUID `json:"id"`
+	Ocena         int       `json:"ocena"`
+	Komentar      *string   `json:"komentar,omitempty"`
+	SobaID        uuid.UUID `json:"sobaId"`
+	AutorUsername string    `json:"autorUsername"`
 }
 
 type StatusKvara string
@@ -45,14 +47,14 @@ const (
 )
 
 type Kvar struct {
-	ID         uuid.UUID   `json:"id"`
-	Opis       string      `json:"opis"`
-	Status     StatusKvara `json:"status"`
-	SobaID     uuid.UUID   `json:"sobaId"`
-	PrijavioID uuid.UUID   `json:"prijavioId"`
+	ID               uuid.UUID   `json:"id"`
+	Opis             string      `json:"opis"`
+	Status           StatusKvara `json:"status"`
+	SobaID           uuid.UUID   `json:"sobaId"`
+	PrijavioUsername string      `json:"prijavioUsername"`
 }
 type StudentskaKartica struct {
-	ID        uuid.UUID `json:"id"`
-	Stanje    float64   `json:"stanje"`
-	StudentID uuid.UUID `json:"studentID"`
+	ID              uuid.UUID `json:"id"`
+	Stanje          float64   `json:"stanje"`
+	StudentUsername string    `json:"studentUsername"`
 }

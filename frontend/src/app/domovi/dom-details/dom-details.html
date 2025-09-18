@@ -1,0 +1,54 @@
+<div class="container py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <button class="btn btn-outline-secondary" (click)="back()">← Nazad</button>
+    <h1 class="h4 m-0">Detalji doma</h1>
+    <div></div>
+  </div>
+
+  <ng-container *ngIf="state$ | async as s">
+    <!-- LOADING -->
+    <div *ngIf="s.status === 'loading'" class="text-center py-5">
+      <div class="spinner-border" role="status"></div>
+      <div class="mt-2">Učitavanje...</div>
+    </div>
+
+    <!-- SUCCESS -->
+    <ng-container *ngIf="s.status === 'success'">
+      <div class="row g-3">
+        <div class="col-12 col-lg-8">
+          <div class="card shadow">
+            <div class="card-body">
+              <h2 class="h4 mb-2">{{ s.dom.naziv }}</h2>
+              <span class="badge bg-primary mb-3">ID: {{ s.dom.id }}</span>
+
+              <dl class="row mb-0">
+                <dt class="col-sm-3">Adresa</dt>
+                <dd class="col-sm-9">{{ s.dom.adresa }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="card shadow h-100">
+            <div class="card-body">
+              <h3 class="h6 text-uppercase text-muted mb-3">Akcije</h3>
+              <div class="d-grid gap-2">
+                <a class="btn btn-primary"
+                   [routerLink]="['/rooms/free']"
+                   [queryParams]="{ domId: s.dom.id }">
+                  Prikaži slobodne sobe
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- ERROR / NOT FOUND -->
+    <div *ngIf="s.status === 'error'" class="alert alert-warning mt-4">
+      Dom nije pronađen ili je došlo do greške.
+    </div>
+  </ng-container>
+</div>

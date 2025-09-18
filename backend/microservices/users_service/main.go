@@ -38,7 +38,7 @@ func main() {
 	router.Handle("/api/register", http.HandlerFunc(authHandler.Register)).Methods(http.MethodPost)
 	router.Handle("/api/login", http.HandlerFunc(authHandler.Login)).Methods(http.MethodPost)
 
-	router.Handle("/api/users/{id}", http.HandlerFunc(authHandler.GetUser)).Methods(http.MethodGet)
+	router.Handle("/api/users/{username}", http.HandlerFunc(authHandler.GetUser)).Methods(http.MethodGet)
 
 	// Wrap with CORS middleware
 	handler := withCORS(router)

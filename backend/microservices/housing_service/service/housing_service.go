@@ -21,7 +21,6 @@ type Services struct {
 	Student repository.StudentRepository
 	Rec     repository.RecenzijaRepository
 	Kvar    repository.KvarRepository
-	// Novo: repo za studentske kartice
 	Kartica repository.StudentskaKarticaRepository
 }
 
@@ -32,7 +31,7 @@ func New(
 	student repository.StudentRepository,
 	rec repository.RecenzijaRepository,
 	kvar repository.KvarRepository,
-	kartica repository.StudentskaKarticaRepository, // novo
+	kartica repository.StudentskaKarticaRepository,
 ) *Services {
 	return &Services{
 		DB:      db,
@@ -41,27 +40,42 @@ func New(
 		Student: student,
 		Rec:     rec,
 		Kvar:    kvar,
-		Kartica: kartica, // novo
+		Kartica: kartica,
 	}
 }
 
-// Helper za kontekst sa timeout-om
 func ctxTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(ctx, defaultTimeout)
 }
 
-/* ======================= Studentske operacije ======================= */
+/* ======================= Domovi ======================= */
 
-// CreateStudent kreira studenta bez dodele sobe (SobaID = nil).
-func (s *Services) CreateStudent(ctx context.Context, ime, prezime string) (domain.Student, error) {
+func (s *Services) GetDom(ctx context.Context, domID uuid.UUID) (domain.Dom, error) {
+	ctx, cancel := ctxTimeout(ctx)
+	defer cancel()
+
+	return s.Dom.Get(ctx, s.DB, domID)
+}
+
+func (s *Services) GetAllDomovi(ctx context.Context) ([]domain.Dom, error) {
+	ctx, cancel := ctxTimeout(ctx)
+	defer cancel()
+
+	return s.Dom.GetAll(ctx, s.DB)
+}
+
+/* ======================= Studenti ======================= */
+
+func (s *Services) CreateStudent(ctx context.Context, ime, prezime, username string) (domain.Student, error) {
 	ctx, cancel := ctxTimeout(ctx)
 	defer cancel()
 
 	st := domain.Student{
-		ID:      uuid.New(),
-		Ime:     ime,
-		Prezime: prezime,
-		SobaID:  nil,
+		ID:       uuid.New(),
+		Ime:      ime,
+		Prezime:  prezime,
+		Username: username,
+		SobaID:   nil,
 	}
 	if err := s.Student.Create(ctx, s.DB, &st); err != nil {
 		return domain.Student{}, err
@@ -69,9 +83,8 @@ func (s *Services) CreateStudent(ctx context.Context, ime, prezime string) (doma
 	return st, nil
 }
 
-// UpisiStudentaUSobu kreira studenta i dodeljuje ga zadatoj sobi (broj u okviru doma).
-// Radi u transakciji i zaključava red sobe (SELECT ... FOR UPDATE).
-func (s *Services) UpisiStudentaUSobu(ctx context.Context, domID uuid.UUID, brojSobe, ime, prezime string) (domain.Student, error) {
+// Upis postojeceg studenta (po username) u sobu
+func (s *Services) UpisiPostojecegStudentaUSobu(ctx context.Context, domID uuid.UUID, brojSobe, username string) (domain.Student, error) {
 	ctx, cancel := ctxTimeout(ctx)
 	defer cancel()
 
@@ -85,34 +98,43 @@ func (s *Services) UpisiStudentaUSobu(ctx context.Context, domID uuid.UUID, broj
 		}
 	}()
 
-	// 1) Zaključaj sobu po broju u domu
+	// 1) Zaključaj sobu
 	soba, err := s.Soba.GetByBroj(ctx, tx, domID, brojSobe, true)
 	if err != nil {
 		return domain.Student{}, err
 	}
-	if !soba.Slobodna {
-		return domain.Student{}, errors.New("soba nije slobodna")
-	}
 
-	// 2) Kreiraj studenta
-	st := domain.Student{
-		ID:      uuid.New(),
-		Ime:     ime,
-		Prezime: prezime,
-	}
-	if err = s.Student.Create(ctx, tx, &st); err != nil {
+	// 2) Proveri popunjenost
+	postojeci, err := s.Student.ListBySoba(ctx, tx, soba.ID)
+	if err != nil {
 		return domain.Student{}, err
 	}
+	if len(postojeci) >= soba.Kapacitet {
+		return domain.Student{}, errors.New("soba je popunjena (nema slobodnih mesta)")
+	}
 
-	// 3) Poveži i označi sobu zauzetom
+	// 3) Nadji studenta po username
+	st, err := s.Student.GetByUsername(ctx, tx, username)
+	if err != nil {
+		return domain.Student{}, errors.New("student ne postoji")
+	}
+	if st.SobaID != nil {
+		return domain.Student{}, errors.New("student je već dodeljen nekoj sobi")
+	}
+
+	// 4) Povezi
 	if err = s.Student.AssignToSoba(ctx, tx, st.ID, soba.ID); err != nil {
 		return domain.Student{}, err
 	}
-	if err = s.Soba.SetSlobodna(ctx, tx, soba.ID, false); err != nil {
-		return domain.Student{}, err
+
+	// 5) Ako je poslednje mesto, zatvori sobu
+	if len(postojeci)+1 >= soba.Kapacitet {
+		if err = s.Soba.SetSlobodna(ctx, tx, soba.ID, false); err != nil {
+			return domain.Student{}, err
+		}
 	}
 
-	// 4) Commit
+	// 6) Commit
 	if err = tx.Commit(); err != nil {
 		return domain.Student{}, err
 	}
@@ -121,7 +143,7 @@ func (s *Services) UpisiStudentaUSobu(ctx context.Context, domID uuid.UUID, broj
 	return st, nil
 }
 
-// OslobodiSobu uklanja dodelu sobe studentu i označava sobu kao slobodnu.
+// Oslobodi sobu od studenta po ID-u (ovo ostaje po ID jer je to interni poziv)
 func (s *Services) OslobodiSobu(ctx context.Context, studentID uuid.UUID) (err error) {
 	ctx, cancel := ctxTimeout(ctx)
 	defer cancel()
@@ -141,31 +163,42 @@ func (s *Services) OslobodiSobu(ctx context.Context, studentID uuid.UUID) (err e
 		return err
 	}
 	if st.SobaID == nil {
-		// već nema sobu — no-op
 		return tx.Commit()
 	}
 
 	if err = s.Student.UnassignSoba(ctx, tx, studentID); err != nil {
 		return err
 	}
-	if err = s.Soba.SetSlobodna(ctx, tx, *st.SobaID, true); err != nil {
+
+	soba, err := s.Soba.Get(ctx, tx, *st.SobaID)
+	if err != nil {
 		return err
 	}
+	preostali, err := s.Student.ListBySoba(ctx, tx, soba.ID)
+	if err != nil {
+		return err
+	}
+
+	shouldBeFree := len(preostali) < soba.Kapacitet
+	if err = s.Soba.SetSlobodna(ctx, tx, soba.ID, shouldBeFree); err != nil {
+		return err
+	}
+
 	return tx.Commit()
 }
 
 /* ======================= Recenzije ======================= */
 
-func (s *Services) DodajRecenziju(ctx context.Context, sobaID, autorID uuid.UUID, ocena int, komentar *string) (domain.RecenzijaSobe, error) {
+func (s *Services) DodajRecenziju(ctx context.Context, sobaID uuid.UUID, autorUsername string, ocena int, komentar *string) (domain.RecenzijaSobe, error) {
 	ctx, cancel := ctxTimeout(ctx)
 	defer cancel()
 
 	r := domain.RecenzijaSobe{
-		ID:       uuid.New(),
-		Ocena:    ocena,
-		Komentar: komentar,
-		SobaID:   sobaID,
-		AutorID:  autorID,
+		ID:            uuid.New(),
+		Ocena:         ocena,
+		Komentar:      komentar,
+		SobaID:        sobaID,
+		AutorUsername: autorUsername,
 	}
 	if err := s.Rec.Create(ctx, s.DB, &r); err != nil {
 		return domain.RecenzijaSobe{}, err
@@ -175,16 +208,16 @@ func (s *Services) DodajRecenziju(ctx context.Context, sobaID, autorID uuid.UUID
 
 /* ======================= Kvarovi ======================= */
 
-func (s *Services) PrijaviKvar(ctx context.Context, sobaID, prijavioID uuid.UUID, opis string) (domain.Kvar, error) {
+func (s *Services) PrijaviKvar(ctx context.Context, sobaID uuid.UUID, prijavioUsername, opis string) (domain.Kvar, error) {
 	ctx, cancel := ctxTimeout(ctx)
 	defer cancel()
 
 	k := domain.Kvar{
-		ID:         uuid.New(),
-		Opis:       opis,
-		Status:     domain.StatusPrijavljen,
-		SobaID:     sobaID,
-		PrijavioID: prijavioID,
+		ID:               uuid.New(),
+		Opis:             opis,
+		Status:           domain.StatusPrijavljen,
+		SobaID:           sobaID,
+		PrijavioUsername: prijavioUsername,
 	}
 	if err := s.Kvar.Create(ctx, s.DB, &k); err != nil {
 		return domain.Kvar{}, err
@@ -198,27 +231,22 @@ func (s *Services) PromeniStatusKvara(ctx context.Context, kvarID uuid.UUID, sta
 	return s.Kvar.UpdateStatus(ctx, s.DB, kvarID, status)
 }
 
-/* ======================= Sobe / DTO-i ======================= */
+/* ======================= Sobe / DTO ======================= */
 
-// GetSoba vraća osnovne podatke sobe.
 func (s *Services) GetSoba(ctx context.Context, sobaID uuid.UUID) (domain.Soba, error) {
 	ctx, cancel := ctxTimeout(ctx)
 	defer cancel()
 	return s.Soba.Get(ctx, s.DB, sobaID)
 }
 
-// GetSobaDetail vraća sobu sa studentima, recenzijama i kvarovima (DTO za API).
 func (s *Services) GetSobaDetail(ctx context.Context, sobaID uuid.UUID) (domain.Soba, error) {
 	ctx, cancel := ctxTimeout(ctx)
 	defer cancel()
 
-	// 1) osnovni entitet
 	soba, err := s.Soba.Get(ctx, s.DB, sobaID)
 	if err != nil {
 		return domain.Soba{}, err
 	}
-
-	// 2) rela liste
 	sts, err := s.Student.ListBySoba(ctx, s.DB, sobaID)
 	if err != nil {
 		return domain.Soba{}, err
@@ -232,42 +260,36 @@ func (s *Services) GetSobaDetail(ctx context.Context, sobaID uuid.UUID) (domain.
 		return domain.Soba{}, err
 	}
 
-	// 3) popuni DTO polja
 	soba.Studenti = sts
 	soba.Recenzije = recs
 	soba.Kvarovi = kvars
 	return soba, nil
 }
 
-// KreirajStudentskuKarticuAkoNema: kreira studentsku karticu za datog studenta ako ne postoji,
-// u suprotnom vrati postojeću.
-func (s *Services) KreirajStudentskuKarticuAkoNema(ctx context.Context, studentID uuid.UUID) (domain.StudentskaKartica, error) {
+/* ============ Studentske kartice po username ============ */
+
+func (s *Services) KreirajStudentskuKarticuAkoNema(ctx context.Context, studentUsername string) (domain.StudentskaKartica, error) {
 	ctx, cancel := ctxTimeout(ctx)
 	defer cancel()
-
-	return s.Kartica.CreateIfNotExists(ctx, s.DB, studentID)
+	return s.Kartica.CreateIfNotExistsByUsername(ctx, s.DB, studentUsername)
 }
 
-// (opciono) Može zatrebati i direktno čitanje kartice po studentu
-func (s *Services) GetStudentskaKarticaByStudent(ctx context.Context, studentID uuid.UUID) (domain.StudentskaKartica, error) {
+func (s *Services) GetStudentskaKarticaByStudent(ctx context.Context, studentUsername string) (domain.StudentskaKartica, error) {
 	ctx, cancel := ctxTimeout(ctx)
 	defer cancel()
-
-	return s.Kartica.GetByStudentID(ctx, s.DB, studentID)
+	return s.Kartica.GetByStudentUsername(ctx, s.DB, studentUsername)
 }
 
-// (opciono) Ažuriranje stanja (pozitivno ili negativno)
-func (s *Services) AzurirajStanjeStudentskeKartice(ctx context.Context, studentID uuid.UUID, delta float64) (domain.StudentskaKartica, error) {
+func (s *Services) AzurirajStanjeStudentskeKartice(ctx context.Context, studentUsername string, delta float64) (domain.StudentskaKartica, error) {
 	ctx, cancel := ctxTimeout(ctx)
 	defer cancel()
-
-	return s.Kartica.UpdateStanje(ctx, s.DB, studentID, delta)
+	return s.Kartica.UpdateStanjeByUsername(ctx, s.DB, studentUsername, delta)
 }
 
-// ListSlobodneSobe vraća sve slobodne sobe u okviru zadatog doma.
+/* ======================= Slobodne sobe ======================= */
+
 func (s *Services) ListSlobodneSobe(ctx context.Context, domID uuid.UUID) ([]domain.Soba, error) {
 	ctx, cancel := ctxTimeout(ctx)
 	defer cancel()
-
 	return s.Soba.ListSlobodne(ctx, s.DB, domID)
 }

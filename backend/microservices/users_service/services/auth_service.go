@@ -63,7 +63,7 @@ func (s *authService) Register(ctx context.Context, req models.RegisterRequest) 
 		Username:  username,
 		Email:     email,
 		IsActive:  true,
-		Role:      "user",
+		Role:      "student",
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)

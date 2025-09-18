@@ -1,0 +1,32 @@
+<div class="container py-4">
+  <h1 class="h4 mb-4">Ostavi recenziju za sobu</h1>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="mb-3">
+      <label class="form-label">Ocena (1–5)</label>
+      <input type="number" class="form-control" formControlName="ocena" min="1" max="5"
+             [class.is-invalid]="form.controls.ocena.touched && form.controls.ocena.invalid">
+      <div class="invalid-feedback">Ocena mora biti između 1 i 5.</div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Komentar</label>
+      <textarea class="form-control" formControlName="komentar" rows="3" required></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary" [disabled]="loading">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+      Pošalji recenziju
+    </button>
+  </form>
+
+  <div *ngIf="errorMsg" class="alert alert-danger mt-3">
+    {{ errorMsg }}
+  </div>
+
+  <div *ngIf="created" class="alert alert-success mt-3">
+    <div class="fw-semibold">Hvala na oceni!</div>
+    <div>Ocena: {{ created.ocena }}</div>
+    <div *ngIf="created.komentar">Komentar: {{ created.komentar }}</div>
+  </div>
+</div>

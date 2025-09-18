@@ -12,8 +12,8 @@ export class UserService {
   private baseUrlCanteen = 'http://localhost:8001/api/canteens';
   private baseUrlMenu = 'http://localhost:8001/api/menus';
 
-  getUserById(id: string): Observable<User> {
-    return this.http.get<User>(`${this.baseUrl}/${id}`);
+  getUserById(username: string): Observable<User> {
+    return this.http.get<User>(`${this.baseUrl}/${username}`);
   }
 
   getMealHistory(userId: string): Observable<MealHistory[]> {

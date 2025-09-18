@@ -21,6 +21,7 @@ export class AuthService {
             localStorage.setItem('token', res.token);
             localStorage.setItem('user', res.user.id); // direktan string
             localStorage.setItem('role', res.user.role); // direktan string
+            localStorage.setItem('user', res.user.username);
           }
           return res;
         }),
