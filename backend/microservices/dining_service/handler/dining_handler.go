@@ -5,6 +5,7 @@ import (
 	"dining/service"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -314,6 +315,20 @@ func (dh *DiningHandler) GetMenu(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+func (dh *DiningHandler) GetTopRatedMeals(w http.ResponseWriter, r *http.Request) {
+	topMeals, err := dh.service.GetTopRatedMeals()
+	if err != nil {
+		log.Println("GetTopRatedMeals error:", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(topMeals); err != nil {
+		log.Println("JSON encode error:", err)
+	}
 }
 
 func (dh *DiningHandler) renderJSON(w http.ResponseWriter, v interface{}) {

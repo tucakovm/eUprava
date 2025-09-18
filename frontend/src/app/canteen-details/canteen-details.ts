@@ -54,7 +54,6 @@ export class CanteenDetailsComponent implements OnInit {
           close_at: new Date(c.close_at)
         };
 
-        // 👇 nakon učitavanja kantine, povuci popularne obroke
         this.service.getPopularMeals(c.id).subscribe({
           next: (meals) => {
             this.popularMeals = meals;

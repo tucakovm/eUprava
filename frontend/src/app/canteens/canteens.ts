@@ -4,6 +4,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { CanteenService, CanteenDto } from '../services/canteen.service';
 import {Router, RouterModule} from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import {MenuService} from '../services/menu.service';
 
 
 // Interfejs sa Date tipovima za frontend
@@ -24,6 +25,7 @@ interface Canteen {
 })
 export class CanteensComponent implements OnInit {
   private service = inject(CanteenService);
+  private menuService = inject(MenuService)
   private cd = inject(ChangeDetectorRef);
   private router = inject(Router)
 
@@ -32,9 +34,11 @@ export class CanteensComponent implements OnInit {
   error: string | null = null;
   isFormOpen = false;
   newCanteen: Partial<CanteenDto> = {};
+  topMeals: { menuName: string, score: number }[] = [];
 
   ngOnInit(): void {
     this.getCanteens();
+    this.getTopMeals();
   }
 
   getCanteens() {
@@ -51,12 +55,28 @@ export class CanteensComponent implements OnInit {
           close_at: new Date(c.close_at),
         }));
         this.loading = false;
-        this.cd.detectChanges(); 
+        this.cd.detectChanges();
       },
       error: (err) => {
         this.error = err.message || 'Could not load canteens';
         this.loading = false;
         this.cd.detectChanges();
+      }
+    });
+  }
+
+  getTopMeals() {
+    this.menuService.getTopMeals().subscribe({
+      next: (data: { menu_name: string, score: number }[]) => {
+        // mapiramo JSON polja na front-end tip
+        this.topMeals = data.map(d => ({
+          menuName: d.menu_name,
+          score: d.score
+        }));
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Failed to fetch top meals:', err);
       }
     });
   }

@@ -32,6 +32,10 @@ export class MenuService {
     return this.http.delete(`${this.baseUrl}${id}`);
   }
 
+  getTopMeals(): Observable<{ menu_name: string, score: number }[]> {
+    return this.http.get<{ menu_name: string, score: number }[]>(`${this.baseUrl}top-rated/`);
+  }
+
   getMenu(menuId: string, userId: string): Observable<MenuWithCard> {
     const headers = new HttpHeaders({ 'X-Student-ID': userId });
     return this.http.get<MenuWithCard>(`${this.baseUrl2}${menuId}`, { headers });

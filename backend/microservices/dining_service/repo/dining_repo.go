@@ -207,7 +207,6 @@ func (r *DiningRepo) SeedMenusForCanteenA() error {
 }
 
 func (r *DiningRepo) SeedMenuReviews(userId string) error {
-	// Uzimamo nekoliko postojećih menija iz baze
 	rows, err := r.DB.Query(`SELECT id, canteen_id FROM menus LIMIT 5`)
 	if err != nil {
 		return fmt.Errorf("failed to fetch menus for seeding reviews: %w", err)
@@ -232,24 +231,29 @@ func (r *DiningRepo) SeedMenuReviews(userId string) error {
 		return fmt.Errorf("no menus found for seeding reviews")
 	}
 
-	// Dodajemo review za svaki meni
+	// Hard-kodirane ocene
+	hardcodedReviews := []struct{ breakfast, lunch, dinner int64 }{
+		{3, 4, 2},
+		{5, 3, 4},
+		{2, 5, 3},
+		{4, 2, 5},
+		{3, 3, 4},
+	}
+
 	for i, m := range menus {
 		reviewId := uuid.New()
-		breakfastReview := int64((i % 5) + 1)
-		lunchReview := int64(((i + 1) % 5) + 1)
-		dinnerReview := int64(((i + 2) % 5) + 1)
+		review := hardcodedReviews[i%len(hardcodedReviews)]
 
 		_, err := r.DB.Exec(
 			`INSERT INTO menu_reviews (id, menu_id, user_id, breakfast_review, lunch_review, dinner_review)
 			 VALUES ($1, $2, $3, $4, $5, $6)
 			 ON CONFLICT (menu_id, user_id) DO NOTHING`,
-			reviewId, m.id, userId, breakfastReview, lunchReview, dinnerReview,
+			reviewId, m.id, userId, review.breakfast, review.lunch, review.dinner,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert menu review: %w", err)
 		}
 
-		// Povećaj times_selected u popular_meals
 		_, err = r.DB.Exec(
 			`INSERT INTO popular_meals (id, menu_id, canteen_id, times_selected)
 			 VALUES ($1, $2, $3, 1)
@@ -808,4 +812,39 @@ func (r *DiningRepo) GetMenuWithMealsByID(menuId string) (*domain.Menu, error) {
 	menu.Dinner = dinner
 
 	return &menu, nil
+}
+
+func (r *DiningRepo) GetTop3RatedMeals(limit int) ([]domain.MenuRating, error) {
+	rows, err := r.DB.Query(`
+        SELECT 
+            m.id,
+            m.name,
+            ROUND(
+                (COALESCE(AVG(mr.breakfast_review), 0) + 
+                 COALESCE(AVG(mr.lunch_review), 0) + 
+                 COALESCE(AVG(mr.dinner_review), 0)) / 3.0, 2
+            ) as avg_rating
+        FROM menus m
+        LEFT JOIN menu_reviews mr ON m.id = mr.menu_id
+        WHERE mr.id IS NOT NULL
+        GROUP BY m.id, m.name
+        HAVING COUNT(mr.id) > 0
+        ORDER BY avg_rating DESC
+        LIMIT $1;
+    `, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch top rated menus: %w", err)
+	}
+	defer rows.Close()
+
+	var topMenus []domain.MenuRating
+	for rows.Next() {
+		var mr domain.MenuRating
+		if err := rows.Scan(&mr.MenuId, &mr.MenuName, &mr.Score); err != nil {
+			return nil, err
+		}
+		topMenus = append(topMenus, mr)
+	}
+
+	return topMenus, nil
 }

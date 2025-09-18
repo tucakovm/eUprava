@@ -58,4 +58,19 @@
       </div>
     </div>
   </div>
+
+  <!-- Top 3 meals -->
+  <div class="mt-5">
+    <h4>Top 3 Rated Meals</h4>
+    <ul *ngIf="topMeals.length > 0; else noTopMeals" class="list-group">
+      <li *ngFor="let meal of topMeals" class="list-group-item d-flex justify-content-between align-items-center">
+        {{ meal.menuName }}
+        <span class="badge bg-primary rounded-pill">{{ meal.score | number:'1.1-2' }}</span>
+      </li>
+    </ul>
+    <ng-template #noTopMeals>
+      <p>No top meals available.</p>
+    </ng-template>
+  </div>
+
 </div>

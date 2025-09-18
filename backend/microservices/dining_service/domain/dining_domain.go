@@ -105,6 +105,12 @@ type MealHistoryWithReview struct {
 	Review     *MenuReview `json:"review,omitempty"`
 }
 
+type MenuRating struct {
+	MenuId   uuid.UUID `json:"menu_id"`
+	MenuName string    `json:"menu_name"`
+	Score    float64   `json:"score"`
+}
+
 type DiningRepository interface {
 	GetAllCanteens() ([]Canteen, error)
 	CreateCanteen(c *Canteen) error
@@ -128,4 +134,5 @@ type DiningRepository interface {
 	GetMealHistoryWithReviewsByUser(userId string) ([]MealHistoryWithReview, error)
 	UpdateMenuReview(review *MenuReview) error
 	GetMenuWithMealsByID(menuId string) (*Menu, error)
+	GetTop3RatedMeals(limit int) ([]MenuRating, error)
 }

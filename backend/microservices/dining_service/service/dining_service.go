@@ -95,3 +95,7 @@ func (ds *DiningService) CreateMenuReview(review *domain.MenuReview) error {
 func (ds *DiningService) GetMenu(id string) (*domain.Menu, error) {
 	return ds.repo.GetMenuWithMealsByID(id)
 }
+
+func (ds *DiningService) GetTopRatedMeals() ([]domain.MenuRating, error) {
+	return ds.repo.GetTop3RatedMeals(3)
+}
