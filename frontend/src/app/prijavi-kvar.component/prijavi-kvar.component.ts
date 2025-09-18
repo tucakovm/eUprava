@@ -31,7 +31,7 @@ export class PrijaviKvarComponent {
     if (!userStr) {
       throw new Error('Nije pronađen user u localStorage!');
     }
-    this.prijavioUsername = JSON.parse(userStr);
+    this.prijavioUsername = userStr;
   }
 
   submit() {

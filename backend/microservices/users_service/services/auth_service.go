@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -34,11 +33,6 @@ type authService struct {
 
 func (s *authService) GetUser(ctx context.Context, id string) (*models.UserDTO, error) {
 	cleanID := strings.Trim(strings.TrimSpace(id), "\"")
-
-	if _, err := uuid.Parse(cleanID); err != nil {
-		return nil, fmt.Errorf("invalid UUID format: %s", cleanID)
-	}
-
 	return s.repo.GetUserByID(ctx, cleanID)
 }
 

@@ -46,5 +46,5 @@ export interface Kvar {
 export interface StudentskaKartica {
   id: string;
   stanje: number;
-  studentUsername: string; // server šalje 'studentID' (camel case kao u domen modelu)
+  studentUsername: string; 
 }
