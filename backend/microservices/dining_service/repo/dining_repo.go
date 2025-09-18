@@ -102,10 +102,11 @@ func (r *DiningRepo) Migrate() error {
 		`CREATE TABLE IF NOT EXISTS menu_reviews (
 			id UUID PRIMARY KEY,
 			menu_id UUID REFERENCES menus(id) ON DELETE CASCADE,
-    		user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			user_id UUID REFERENCES users(id) ON DELETE CASCADE,
 			breakfast_review INT DEFAULT 0,
 			lunch_review INT DEFAULT 0,
-			dinner_review INT DEFAULT 0
+			dinner_review INT DEFAULT 0,
+			UNIQUE (menu_id, user_id)
 		);`,
 
 		`CREATE TABLE IF NOT EXISTS popular_meals (
@@ -207,29 +208,34 @@ func (r *DiningRepo) SeedMenusForCanteenA() error {
 
 func (r *DiningRepo) SeedMenuReviews(userId string) error {
 	// Uzimamo nekoliko postojećih menija iz baze
-	rows, err := r.DB.Query(`SELECT id FROM menus LIMIT 5`)
+	rows, err := r.DB.Query(`SELECT id, canteen_id FROM menus LIMIT 5`)
 	if err != nil {
 		return fmt.Errorf("failed to fetch menus for seeding reviews: %w", err)
 	}
 	defer rows.Close()
 
-	var menuIds []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return err
-		}
-		menuIds = append(menuIds, id)
+	type menuData struct {
+		id        string
+		canteenId string
 	}
 
-	if len(menuIds) == 0 {
+	var menus []menuData
+	for rows.Next() {
+		var m menuData
+		if err := rows.Scan(&m.id, &m.canteenId); err != nil {
+			return err
+		}
+		menus = append(menus, m)
+	}
+
+	if len(menus) == 0 {
 		return fmt.Errorf("no menus found for seeding reviews")
 	}
 
 	// Dodajemo review za svaki meni
-	for i, menuId := range menuIds {
-		reviewId := uuid.New()                // Možeš zakucati fiksni UUID npr: uuid.MustParse("11111111-1111-1111-1111-11111111111" + strconv.Itoa(i))
-		breakfastReview := int64((i % 5) + 1) // ocene od 1 do 5
+	for i, m := range menus {
+		reviewId := uuid.New()
+		breakfastReview := int64((i % 5) + 1)
 		lunchReview := int64(((i + 1) % 5) + 1)
 		dinnerReview := int64(((i + 2) % 5) + 1)
 
@@ -237,10 +243,22 @@ func (r *DiningRepo) SeedMenuReviews(userId string) error {
 			`INSERT INTO menu_reviews (id, menu_id, user_id, breakfast_review, lunch_review, dinner_review)
 			 VALUES ($1, $2, $3, $4, $5, $6)
 			 ON CONFLICT (menu_id, user_id) DO NOTHING`,
-			reviewId, menuId, userId, breakfastReview, lunchReview, dinnerReview,
+			reviewId, m.id, userId, breakfastReview, lunchReview, dinnerReview,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert menu review: %w", err)
+		}
+
+		// Povećaj times_selected u popular_meals
+		_, err = r.DB.Exec(
+			`INSERT INTO popular_meals (id, menu_id, canteen_id, times_selected)
+			 VALUES ($1, $2, $3, 1)
+			 ON CONFLICT (menu_id, canteen_id)
+			 DO UPDATE SET times_selected = popular_meals.times_selected + 1`,
+			uuid.New(), m.id, m.canteenId,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to update popular meals: %w", err)
 		}
 	}
 
@@ -755,4 +773,39 @@ func (r *DiningRepo) GetMealHistoryWithReviewsByUser(userId string) ([]domain.Me
 		history = append(history, h)
 	}
 	return history, nil
+}
+
+func (r *DiningRepo) GetMenuWithMealsByID(menuId string) (*domain.Menu, error) {
+	var menu domain.Menu
+	var breakfast, lunch, dinner domain.Meal
+
+	err := r.DB.QueryRow(`
+		SELECT 
+			m.id, m.name, m.canteen_id, m.weekday,
+			b.id, b.name, b.description, b.price,
+			l.id, l.name, l.description, l.price,
+			d.id, d.name, d.description, d.price
+		FROM menus m
+		LEFT JOIN meals b ON m.breakfast_id = b.id
+		LEFT JOIN meals l ON m.lunch_id = l.id
+		LEFT JOIN meals d ON m.dinner_id = d.id
+		WHERE m.id = $1
+	`, menuId).Scan(
+		&menu.Id, &menu.Name, &menu.CanteenId, &menu.Weekday,
+		&breakfast.Id, &breakfast.Name, &breakfast.Description, &breakfast.Price,
+		&lunch.Id, &lunch.Name, &lunch.Description, &lunch.Price,
+		&dinner.Id, &dinner.Name, &dinner.Description, &dinner.Price,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("menu with id %s not found", menuId)
+		}
+		return nil, err
+	}
+
+	menu.Breakfast = breakfast
+	menu.Lunch = lunch
+	menu.Dinner = dinner
+
+	return &menu, nil
 }

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { Menu, Weekday } from '../model/menus';
 import { MenuService } from '../services/menu.service';
+import { AuthService} from '../services/auth.service';
 
 @Component({
   selector: 'app-menus',
@@ -17,12 +18,14 @@ export class MenusComponent implements OnInit {
   private cd = inject(ChangeDetectorRef);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private authService = inject(AuthService)
 
   menus: Menu[] = [];
   loading = false;
   error: string | null = null;
   canteenId: string | null = null;
   menusByDay: { [day: string]: Menu[] } = {};
+  userRole: 'admin' | 'user' = 'user';
 
   // Modal kontrola
   isMenuFormOpen = false;
@@ -41,7 +44,9 @@ export class MenusComponent implements OnInit {
   weekdays = Object.values(Weekday);
 
   ngOnInit(): void {
+    this.userRole = (this.authService.userRole as 'admin' | 'user') ?? 'user';
     this.canteenId = this.route.snapshot.paramMap.get('id');
+    
     if (this.canteenId) {
       this.getMenus(this.canteenId);
       this.newMenu.canteen_id = this.canteenId;
@@ -121,12 +126,16 @@ export class MenusComponent implements OnInit {
   }
 
   deleteMenu(menu: Menu) {
-     if (confirm(`Are you sure you want to delete menu "${menu.name}"?`)) {
-       this.menuService.delete(menu.id).subscribe(() => {
-         this.menus = this.menus.filter(m => m.id !== menu.id);
-         this.cd.detectChanges();
-       });
-     }
+    if (confirm(`Are you sure you want to delete menu "${menu.name}"?`)) {
+      this.menuService.delete(menu.id).subscribe(() => {
+        this.menus = this.menus.filter(m => m.id !== menu.id);
+        this.cd.detectChanges();
+      });
+    }
+  }
+
+  takeMeal(menu: any) {
+    this.router.navigate(['/meal', menu.id]);
   }
 
 

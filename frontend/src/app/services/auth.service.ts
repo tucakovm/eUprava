@@ -19,7 +19,8 @@ export class AuthService {
         map(res => {
           if (typeof window !== 'undefined') {
             localStorage.setItem('token', res.token);
-            localStorage.setItem('user', JSON.stringify(res.user.id));
+            localStorage.setItem('user', res.user.id); // direktan string
+            localStorage.setItem('role', res.user.role); // direktan string
           }
           return res;
         }),
@@ -27,12 +28,17 @@ export class AuthService {
       );
   }
 
-  logout() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-    }
+  get userRole(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('role'); // vrati direktno string
   }
+
+  get userId(): string | null {
+    if (typeof window === 'undefined') return null;
+    const id = localStorage.getItem('user');
+    return id && id !== 'null' && id !== 'undefined' ? id : null;
+  }
+
 
   get token(): string | null {
     if (typeof window === 'undefined') return null;
@@ -41,6 +47,14 @@ export class AuthService {
 
   get isAuthenticated(): boolean {
     return !!this.token;
+  }
+
+  logout() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('role');
+    }
   }
 
   private handle(err: HttpErrorResponse) {

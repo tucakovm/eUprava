@@ -51,7 +51,7 @@ export class CanteensComponent implements OnInit {
           close_at: new Date(c.close_at),
         }));
         this.loading = false;
-        this.cd.detectChanges(); // forsira Angular da osveži view
+        this.cd.detectChanges(); 
       },
       error: (err) => {
         this.error = err.message || 'Could not load canteens';

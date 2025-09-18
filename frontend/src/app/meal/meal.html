@@ -1,0 +1,49 @@
+<div *ngIf="menu" class="container py-5" [formGroup]="form">
+  <h3 class="mb-4">Choose your meal</h3>
+
+  <!-- Student card stanje -->
+  <div *ngIf="studentCard" class="mb-3">
+    <strong>Student card balance :</strong> {{ studentCard.stanje | currency }}
+  </div>
+
+  <!-- Breakfast -->
+  <div class="form-check mb-2">
+    <input type="checkbox" class="form-check-input" id="breakfast" formControlName="breakfast">
+    <label for="breakfast" class="form-check-label">
+      Breakfast: {{ menu.breakfast.name }} - {{ menu.breakfast.price | currency }}
+    </label>
+  </div>
+
+  <!-- Lunch -->
+  <div class="form-check mb-2">
+    <input type="checkbox" class="form-check-input" id="lunch" formControlName="lunch">
+    <label for="lunch" class="form-check-label">
+      Lunch: {{ menu.lunch.name }} - {{ menu.lunch.price | currency }}
+    </label>
+  </div>
+
+  <!-- Dinner -->
+  <div class="form-check mb-2">
+    <input type="checkbox" class="form-check-input" id="dinner" formControlName="dinner">
+    <label for="dinner" class="form-check-label">
+      Dinner: {{ menu.dinner.name }} - {{ menu.dinner.price | currency }}
+    </label>
+  </div>
+
+  <div class="mt-3">
+    <strong>Total price: </strong> {{ totalPrice | currency }}
+  </div>
+
+  <button
+    type="button"
+    class="btn btn-success mt-3"
+    (click)="submit()"
+    [disabled]="studentCard && studentCard.stanje < totalPrice">
+    Confirm
+  </button>
+
+</div>
+
+<div *ngIf="!menu" class="text-center py-5">
+  Loading menu...
+</div>

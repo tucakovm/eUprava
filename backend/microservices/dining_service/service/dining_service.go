@@ -91,3 +91,7 @@ func (ds *DiningService) UpdateMenuReview(r *domain.MenuReview) error {
 func (ds *DiningService) CreateMenuReview(review *domain.MenuReview) error {
 	return ds.repo.CreateMenuReview(review)
 }
+
+func (ds *DiningService) GetMenu(id string) (*domain.Menu, error) {
+	return ds.repo.GetMenuWithMealsByID(id)
+}

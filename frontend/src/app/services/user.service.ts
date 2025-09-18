@@ -38,10 +38,4 @@ export class UserService {
     return this.http.get<MenuReview>(`${this.baseUrlMenu}/review/{reviewId}`);
   }
 
-  getReviewByMenuAndUser(menuId: string, userId: string): Observable<MenuReview | null> {
-    return this.http.get<MenuReview>(`${this.baseUrlMenu}/api/menus/review/?menu_id=${menuId}&user_id=${userId}`)
-      .pipe(
-        catchError(() => of(null))
-      );
-  }
 }

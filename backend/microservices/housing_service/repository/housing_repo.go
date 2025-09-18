@@ -159,6 +159,10 @@ func (dr *HousingRepo) InitData(ctx context.Context) error {
 	karticaMarkoID := uuid.New()
 	karticaJelenaID := uuid.New()
 
+	//User iz user repoa
+	userid := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
+	userCardId := uuid.New()
+
 	// --- Dom (2) ---
 	if _, err := tx.ExecContext(ctx,
 		`INSERT INTO dom (id, naziv, adresa) VALUES 
@@ -182,9 +186,10 @@ func (dr *HousingRepo) InitData(ctx context.Context) error {
 	// --- Student (2) (Marko u sobi 102, Jelena bez sobe) ---
 	if _, err := tx.ExecContext(ctx,
 		`INSERT INTO student (id, ime, prezime, soba_id) VALUES
-		 ($1,'Marko','Markovic',$3),
-		 ($2,'Jelena','Jovanovic',NULL)`,
-		studentMarkoID, studentJelenaID, soba102ID,
+	 ($1,'Marko','Markovic',$3),
+	 ($2,'Jelena','Jovanovic',NULL),
+	 ($4,'Asam','Arkom',NULL)`,
+		studentMarkoID, studentJelenaID, soba102ID, userid,
 	); err != nil {
 		return err
 	}
@@ -215,12 +220,14 @@ func (dr *HousingRepo) InitData(ctx context.Context) error {
 		return err
 	}
 
-	// --- Studentska kartica (2) ---
+	// --- Studentska kartica (3) ---
 	if _, err := tx.ExecContext(ctx,
 		`INSERT INTO studentska_kartica (id, stanje, student_id) VALUES
-		 ($1, 1500.00, $3),
-		 ($2,  800.00, $4)`,
-		karticaMarkoID, karticaJelenaID, studentMarkoID, studentJelenaID,
+	 ($1, 1500.00, $4),
+	 ($2,  800.00, $5),
+	 ($3, 2000.00, $6)`,
+		karticaMarkoID, karticaJelenaID, userCardId,
+		studentMarkoID, studentJelenaID, userid,
 	); err != nil {
 		return err
 	}

@@ -13,6 +13,7 @@ import { Students } from './features/housing/pages/students/students';
 import { RoomDetail } from './features/housing/pages/room-detail/room-detail';
 import { Reviews } from './features/housing/pages/reviews/reviews';
 import { Faults } from './features/housing/pages/faults/faults';
+import {MealComponent} from './meal/meal';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -24,14 +25,14 @@ export const routes: Routes = [
   { path: 'menus/:id', component: MenusComponent},
   { path: 'user-details', component: UserDetails},
   { path: 'canteens',component: CanteensComponent},
-    { path: 'dashboard', component: Dashboard },
+  { path: 'dashboard', component: Dashboard },
   { path: 'students', component: Students },
   { path: 'rooms', component: Rooms },
   { path: 'rooms/:id', component: RoomDetail },
   { path: 'cards', component: StudentCards },
   { path: 'reviews', component: Reviews },
   { path: 'faults', component: Faults },
-
+  { path: 'meal/:menuId', component: MealComponent },
   { path: '**', redirectTo: 'login' },
 
 ];

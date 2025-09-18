@@ -14,6 +14,12 @@ type Canteen struct {
 	CloseAt time.Time `json:"close_at"`
 }
 
+type StudentCard struct {
+	ID        uuid.UUID `json:"id"`
+	Stanje    float64   `json:"stanje"`
+	StudentID uuid.UUID `json:"studentID"`
+}
+
 type CanteenDTO struct {
 	Name    string `json:"name"`
 	Address string `json:"address"`
@@ -121,4 +127,5 @@ type DiningRepository interface {
 	GetMealHistoryByUser(userId string) ([]MealHistory, error)
 	GetMealHistoryWithReviewsByUser(userId string) ([]MealHistoryWithReview, error)
 	UpdateMenuReview(review *MenuReview) error
+	GetMenuWithMealsByID(menuId string) (*Menu, error)
 }

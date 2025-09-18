@@ -4,6 +4,7 @@ import (
 	"dining/domain"
 	"dining/service"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -243,6 +244,76 @@ func (h *DiningHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(review)
+}
+
+func (dh *DiningHandler) fetchStudentCard(studentID uuid.UUID) (*domain.StudentCard, error) {
+	client := &http.Client{
+		Timeout: 3 * time.Second,
+	}
+
+	// URL sa query parametrom studentId
+	url := fmt.Sprintf("http://housing-server:8003/api/housing/students/cards?studentId=%s", studentID.String())
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch student card: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var card domain.StudentCard
+	if err := json.NewDecoder(resp.Body).Decode(&card); err != nil {
+		return nil, fmt.Errorf("failed to decode student card: %w", err)
+	}
+
+	return &card, nil
+}
+
+func (dh *DiningHandler) GetMenu(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	menuId := strings.Trim(vars["id"], `"`)
+	if menuId == "" {
+		http.Error(w, "Menu ID is required", http.StatusBadRequest)
+		return
+	}
+
+	menu, err := dh.service.GetMenu(menuId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	studentIDStr := r.Header.Get("X-Student-ID")
+	if studentIDStr == "" {
+		http.Error(w, "missing student ID", http.StatusBadRequest)
+		return
+	}
+	studentID, err := uuid.Parse(studentIDStr)
+	if err != nil {
+		http.Error(w, "invalid student ID", http.StatusBadRequest)
+		return
+	}
+
+	card, err := dh.fetchStudentCard(studentID)
+	if err != nil {
+		fmt.Println("Warning: failed to fetch student card:", err)
+		// možemo i ovde samo logovati, a ne prekidati
+	}
+
+	// Odgovor sa menijem i karticom
+	response := struct {
+		Menu *domain.Menu        `json:"menu"`
+		Card *domain.StudentCard `json:"card,omitempty"`
+	}{
+		Menu: menu,
+		Card: card,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 func (dh *DiningHandler) renderJSON(w http.ResponseWriter, v interface{}) {

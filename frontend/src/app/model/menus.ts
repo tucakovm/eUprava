@@ -11,6 +11,21 @@ export interface MealDTO {
   price: number;
 }
 
+export interface TopMenu {
+  id: string;
+  name: string;
+  avg_rating: number;
+}
+
+export interface MenuDTO {
+  id: string;
+  name: string;
+  breakfast: Meal;
+  lunch: Meal;
+  dinner: Meal;
+}
+
+
 
 export enum Weekday {
   Monday = 'Monday',

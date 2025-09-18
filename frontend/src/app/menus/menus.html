@@ -160,10 +160,15 @@
                   <p><strong>Lunch:</strong> {{ menu.lunch.name }} - {{ menu.lunch.price | currency }}</p>
                   <p><strong>Dinner:</strong> {{ menu.dinner.name }} - {{ menu.dinner.price | currency }}</p>
                   <div class="mt-auto d-flex gap-2">
-                    <button type="button" class="btn btn-primary flex-fill" (click)="viewMenu(menu)">Details</button>
-                    <button type="button" class="btn btn-danger flex-fill"
+                    <!-- Ako je admin -->
+                    <button *ngIf="userRole === 'admin'" type="button" class="btn btn-danger flex-fill"
                             (click)="deleteMenu(menu); $event.stopPropagation()">Delete</button>
+
+                    <!-- Ako je user -->
+                    <button *ngIf="userRole === 'user'" type="button" class="btn btn-primary flex-fill"
+                            (click)="takeMeal(menu)">Take Meal</button>
                   </div>
+
                 </div>
               </div>
             </div>

@@ -44,6 +44,7 @@ func main() {
 	router.HandleFunc("/api/menus/{id}", diningHandler.GetMenusByCanteenID).Methods(http.MethodGet)
 	router.HandleFunc("/api/menus/{id}", diningHandler.DeleteMenu).Methods(http.MethodDelete)
 	router.HandleFunc("/api/menus/", diningHandler.CreateMenu).Methods(http.MethodPost)
+	router.HandleFunc("/api/menu/{id}", diningHandler.GetMenu).Methods(http.MethodGet)
 
 	router.HandleFunc("/api/menus/reviews/", diningHandler.CreateReview).Methods(http.MethodPost)
 	router.HandleFunc("/api/menus/reviews/", diningHandler.UpdateReview).Methods(http.MethodPut)
@@ -52,7 +53,7 @@ func main() {
 	corsObj := handlers.CORS(
 		handlers.AllowedOrigins([]string{"http://localhost:4200"}), // Angular frontend
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
-		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Student-ID"}),
 	)
 
 	port := os.Getenv("PORT")
