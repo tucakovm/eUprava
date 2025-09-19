@@ -2,9 +2,15 @@
   <h3 class="mb-4">Choose your meal</h3>
 
   <!-- Student card stanje -->
-  <div *ngIf="studentCard" class="mb-3">
+  <div *ngIf="studentCard; else noCard" class="mb-3">
     <strong>Student card balance :</strong> {{ studentCard.stanje | currency }}
   </div>
+
+  <ng-template #noCard>
+    <div class="mb-3 text-danger">
+      You do not have a student card.
+    </div>
+  </ng-template>
 
   <!-- Breakfast -->
   <div class="form-check mb-2">
@@ -38,10 +44,9 @@
     type="button"
     class="btn btn-success mt-3"
     (click)="submit()"
-    [disabled]="studentCard && studentCard.stanje < totalPrice">
+    [disabled]="!studentCard || (studentCard && studentCard.stanje < totalPrice)">
     Confirm
   </button>
-
 </div>
 
 <div *ngIf="!menu" class="text-center py-5">

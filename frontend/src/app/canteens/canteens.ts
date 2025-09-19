@@ -5,6 +5,7 @@ import { CanteenService, CanteenDto } from '../services/canteen.service';
 import {Router, RouterModule} from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import {MenuService} from '../services/menu.service';
+import {AuthService} from '../services/auth.service';
 
 
 // Interfejs sa Date tipovima za frontend
@@ -28,6 +29,7 @@ export class CanteensComponent implements OnInit {
   private menuService = inject(MenuService)
   private cd = inject(ChangeDetectorRef);
   private router = inject(Router)
+  private authService = inject(AuthService);
 
   canteens: Canteen[] = [];
   loading = false;
@@ -35,10 +37,12 @@ export class CanteensComponent implements OnInit {
   isFormOpen = false;
   newCanteen: Partial<CanteenDto> = {};
   topMeals: { menuName: string, score: number }[] = [];
+  isAdmin: boolean = false;
 
   ngOnInit(): void {
     this.getCanteens();
     this.getTopMeals();
+    this.isAdmin = this.authService.userRole === 'admin';
   }
 
   getCanteens() {

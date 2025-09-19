@@ -25,7 +25,8 @@ export class MenusComponent implements OnInit {
   error: string | null = null;
   canteenId: string | null = null;
   menusByDay: { [day: string]: Menu[] } = {};
-  userRole: 'admin' | 'user' = 'user';
+  userRole: 'admin' | 'user' | 'student' = 'user';
+  isAdmin: boolean = false;
 
   // Modal kontrola
   isMenuFormOpen = false;
@@ -46,7 +47,8 @@ export class MenusComponent implements OnInit {
   ngOnInit(): void {
     this.userRole = (this.authService.userRole as 'admin' | 'user') ?? 'user';
     this.canteenId = this.route.snapshot.paramMap.get('id');
-    
+    this.isAdmin = this.authService.userRole === 'admin';
+
     if (this.canteenId) {
       this.getMenus(this.canteenId);
       this.newMenu.canteen_id = this.canteenId;

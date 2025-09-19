@@ -6,6 +6,9 @@ import { FormsModule } from '@angular/forms';
 
 import { User, MealHistory, MenuReview } from '../model/user';
 import { UserService } from '../services/user.service';
+import {AuthService} from '../services/auth.service';
+import {StudentskaKartica} from '../model/housing';
+import {HousingService} from '../services/housing.service';
 
 declare var bootstrap: any;
 
@@ -20,11 +23,19 @@ export class UserDetails implements OnInit {
   private route = inject(ActivatedRoute);
   private userService = inject(UserService);
   private cd = inject(ChangeDetectorRef);
+  private authService = inject(AuthService)
+  private housingService = inject(HousingService);
+
 
   user: User | null = null;
   history: MealHistory[] = [];
   loading = true;
   error: string | null = null;
+  isAdmin: boolean = false;
+  creatingCard = false;
+  cardError: string | null = null;
+  createdCard?: StudentskaKartica;
+
 
   // Review modal data
   selectedMeal: MealHistory | null = null;
@@ -40,6 +51,7 @@ export class UserDetails implements OnInit {
   private reviewModal: any;
 
   ngOnInit() {
+    this.isAdmin = this.authService.userRole === 'admin';
     if (typeof window === 'undefined') {
       this.error = 'Cannot access localStorage on server';
       this.loading = false;
@@ -47,6 +59,7 @@ export class UserDetails implements OnInit {
     }
 
     const storedUserId = localStorage.getItem('user');
+    const loadMealHistoryparam = localStorage.getItem('userId')
     if (!storedUserId) {
       this.error = 'User ID not found in localStorage';
       this.loading = false;
@@ -54,14 +67,14 @@ export class UserDetails implements OnInit {
     }
 
     // Load user first
-    this.userService.getUserById(storedUserId).subscribe({
+    this.userService.getUserById(storedUserId,loadMealHistoryparam).subscribe({
       next: (u) => {
         this.user = u;
         this.loading = false;
         this.cd.detectChanges();
 
         // Then load meal history with reviews
-        this.loadMealHistory(storedUserId);
+        this.loadMealHistory(loadMealHistoryparam);
       },
       error: (err) => {
         this.error = 'Failed to load user';
@@ -81,14 +94,14 @@ export class UserDetails implements OnInit {
     }, 100);
   }
 
-  private loadMealHistory(userId: string) {
+  private loadMealHistory(userId: string | null) {
     this.userService.getMealHistoryWithReviews(userId).subscribe({
       next: (h) => {
         this.history = h;
         this.cd.detectChanges();
       },
       error: (err) => {
-        console.error('Failed to load meal history', err);
+        console.error('Failed to load meal history');
       }
     });
   }
@@ -160,5 +173,31 @@ export class UserDetails implements OnInit {
 
   deleteUser(userId: string) {
     console.log('Delete user', userId);
+  }
+
+  // === NEW: create student card ===
+  createCard() {
+    this.cardError = null;
+    this.createdCard = undefined;
+
+    if (!this.user?.username) {
+      this.cardError = 'Username is missing for this user.';
+      return;
+    }
+
+    this.creatingCard = true;
+    this.housingService.createStudentCardIfMissing(this.user.username).subscribe({
+      next: (card) => {
+        this.createdCard = card;
+        this.creatingCard = false;
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        this.creatingCard = false;
+        this.cardError =
+          err?.error?.message || err?.message || 'Failed to create student card.';
+        console.error('createStudentCardIfMissing error', err);
+      }
+    });
   }
 }

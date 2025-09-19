@@ -3,7 +3,8 @@
   <!-- Header sa dugmetom za kreiranje -->
   <h3 class="mb-4 d-flex justify-content-between align-items-center">
     All Canteens
-    <button type="button" class="btn btn-success" (click)="openForm()">Create Canteen</button>
+    <!-- Dugme se prikazuje samo ako je user admin -->
+    <button *ngIf="isAdmin" type="button" class="btn btn-success" (click)="openForm()">Create Canteen</button>
   </h3>
 
   <!-- Modal Form -->
@@ -51,7 +52,7 @@
 
           <div class="mt-auto d-flex gap-2">
             <button type="button" class="btn btn-primary flex-fill" (click)="viewDetails(c)">Details</button>
-            <button type="button" class="btn btn-danger flex-fill" (click)="deleteCanteen(c); $event.stopPropagation()">Delete</button>
+            <button *ngIf="isAdmin" type="button" class="btn btn-danger flex-fill" (click)="deleteCanteen(c); $event.stopPropagation()">Delete</button>
           </div>
 
         </div>

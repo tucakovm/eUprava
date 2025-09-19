@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router'; // ⬅️ dodaj Router
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HousingService } from '../services/housing.service';
 import { RecenzijaSobe } from '../model/housing';
@@ -16,6 +16,7 @@ export class DodajRecenzijuComponent {
   private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
   private api = inject(HousingService);
+  private router = inject(Router); // ⬅️ inject Router
 
   sobaId = this.route.snapshot.queryParamMap.get('sobaId') ?? '';
   autorUsername = '';
@@ -33,20 +34,30 @@ export class DodajRecenzijuComponent {
   });
 
   constructor() {
-    const userStr = localStorage.getItem('user');
+    const userStr = localStorage.getItem('user') ?? '';
+    let autorUsername = '';
+
     if (userStr) {
-      try {
-        // u storage-u je "marko123" (JSON string) -> parse vrati 'marko123'
-        const parsed = JSON.parse(userStr);
-        this.autorUsername =
-          typeof parsed === 'string'
-            ? parsed
-            : parsed?.username ?? parsed?.userName ?? parsed?.email ?? '';
-      } catch {
-        // ako je upisan plain string bez JSON.stringify
-        this.autorUsername = userStr;
+      const trimmed = userStr.trim();
+      const looksLikeJson = trimmed.startsWith('{') || trimmed.startsWith('[') || trimmed.startsWith('"');
+
+      if (looksLikeJson) {
+        try {
+          const parsed = JSON.parse(userStr);
+          autorUsername =
+            typeof parsed === 'string'
+              ? parsed
+              : parsed?.username ?? parsed?.userName ?? parsed?.email ?? '';
+        } catch {
+          autorUsername = userStr;
+        }
+      } else {
+        autorUsername = userStr;
       }
     }
+
+    this.autorUsername = autorUsername;
+
     if (!this.autorUsername) {
       this.errorMsg = 'Niste prijavljeni. Ulogujte se pa pokušajte ponovo.';
     }
@@ -70,8 +81,6 @@ export class DodajRecenzijuComponent {
     }
 
     const { ocena, komentar } = this.form.getRawValue();
-
-    // obavezno pretvori u broj i očisti komentar
     const oc = Number(ocena);
     const kom = (komentar ?? '').trim() || null;
 
@@ -82,13 +91,14 @@ export class DodajRecenzijuComponent {
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
         next: (rev) => {
-          this.created = rev;
+          const targetId = rev?.sobaId ?? this.sobaId;
+
+          this.router.navigateByUrl(`/rooms/detail?id=${encodeURIComponent(targetId)}`);
         },
         error: (err) => {
           if (err?.status === 409) {
             this.errorMsg = err?.error?.message || err?.error || 'Već ste ocenili ovu sobu.';
           } else if (err?.status === 400) {
-            // backend vraća 400 za loš input/bad json
             this.errorMsg = err?.error?.message || 'Neispravan unos. Proverite podatke.';
           } else {
             this.errorMsg = 'Došlo je do greške pri ostavljanju recenzije.';

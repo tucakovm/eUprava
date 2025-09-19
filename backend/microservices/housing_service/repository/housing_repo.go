@@ -150,7 +150,6 @@ func (dr *HousingRepo) InitData(ctx context.Context) error {
 		studentNikolaID := uuid.New()
 		studentJovanaID := uuid.New()
 		studentMarkoID := uuid.New()
-		studentJelenaID := uuid.New()
 
 		rec1ID := uuid.New()
 		rec2ID := uuid.New()
@@ -160,28 +159,12 @@ func (dr *HousingRepo) InitData(ctx context.Context) error {
 
 		karticaNikolaID := uuid.New()
 		karticaJovanaID := uuid.New()
-		karticaMarkoID := uuid.New()
-		karticaJelenaID := uuid.New()
 
 		// Domovi
 		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO dom (id, naziv, adresa) VALUES 
 			 ($1,'Dom Studenata 1','Bulevar Oslobođenja 12'),
 			 ($2,'Dom Studenata 2','Cara Dušana 45')`,
-			dom1ID, dom2ID,
-		); err != nil {
-			return err
-		}
-
-		//User iz user repoa
-		userid := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
-		userCardId := uuid.New()
-
-		// --- Dom (2) ---
-		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO dom (id, naziv, adresa) VALUES 
-		 ($1,'Dom Studenata 1','Bulevar Oslobodjenja 12'),
-		 ($2,'Dom Studenata 2','Cara Dusana 45')`,
 			dom1ID, dom2ID,
 		); err != nil {
 			return err
@@ -208,17 +191,6 @@ func (dr *HousingRepo) InitData(ctx context.Context) error {
 			       prezime = EXCLUDED.prezime,
 			       soba_id = EXCLUDED.soba_id`,
 			studentNikolaID, studentJovanaID, studentMarkoID, soba102ID,
-		); err != nil {
-			return err
-		}
-
-		// --- Student (2) (Marko u sobi 102, Jelena bez sobe) ---
-		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO student (id, ime, prezime, soba_id) VALUES
-	 ($1,'Marko','Markovic',$3),
-	 ($2,'Jelena','Jovanovic',NULL),
-	 ($4,'Asam','Arkom',NULL)`,
-			studentMarkoID, studentJelenaID, soba102ID, userid,
 		); err != nil {
 			return err
 		}
@@ -255,23 +227,8 @@ func (dr *HousingRepo) InitData(ctx context.Context) error {
 			return err
 		}
 
-		// --- Studentska kartica (3) ---
-		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO studentska_kartica (id, stanje, student_id) VALUES
-	 ($1, 1500.00, $4),
-	 ($2,  800.00, $5),
-	 ($3, 2000.00, $6)`,
-			karticaMarkoID, karticaJelenaID, userCardId,
-			studentMarkoID, studentJelenaID, userid,
-		); err != nil {
-			return err
-		}
-
-		return tx.Commit()
-
 		return nil
 	})
-
 }
 
 /* ================== DBTX ================== */

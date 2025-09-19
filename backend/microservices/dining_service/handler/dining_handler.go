@@ -249,13 +249,15 @@ func (h *DiningHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(review)
 }
 
-func (dh *DiningHandler) fetchStudentCard(studentID uuid.UUID) (*domain.StudentCard, error) {
+func (dh *DiningHandler) fetchStudentCard(studentID string) (*domain.StudentCard, error) {
 	client := &http.Client{
 		Timeout: 3 * time.Second,
 	}
 
+	fmt.Println("Fetching student card: ", studentID)
+
 	// URL sa query parametrom studentId
-	url := fmt.Sprintf("http://housing-server:8003/api/housing/students/cards?studentId=%s", studentID.String())
+	url := fmt.Sprintf("http://housing-server:8003/api/housing/students/cards?studentUsername=%s", studentID)
 
 	resp, err := client.Get(url)
 	if err != nil {
@@ -294,13 +296,8 @@ func (dh *DiningHandler) GetMenu(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing student ID", http.StatusBadRequest)
 		return
 	}
-	studentID, err := uuid.Parse(studentIDStr)
-	if err != nil {
-		http.Error(w, "invalid student ID", http.StatusBadRequest)
-		return
-	}
 
-	card, err := dh.fetchStudentCard(studentID)
+	card, err := dh.fetchStudentCard(studentIDStr)
 	if err != nil {
 		fmt.Println("Warning: failed to fetch student card:", err)
 		// možemo i ovde samo logovati, a ne prekidati
@@ -335,9 +332,10 @@ func (dh *DiningHandler) GetTopRatedMeals(w http.ResponseWriter, r *http.Request
 
 func (dh *DiningHandler) TakeMeal(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		StudentID string  `json:"studentId"`
-		Delta     float64 `json:"delta"`
-		MenuId    string  `json:"menuId"`
+		StudentUsername string  `json:"studentUsername"`
+		Delta           float64 `json:"delta"`
+		MenuId          string  `json:"menuId"`
+		StudentID       string  `json:"studentId"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		http.Error(w, "bad json", http.StatusBadRequest)

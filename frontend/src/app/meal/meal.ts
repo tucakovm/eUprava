@@ -42,13 +42,11 @@ export class MealComponent implements OnInit {
 
     // Učitaj userId iz localStorage
     // @ts-ignore
-    this.studentId = this.authService.userId;
+    this.studentId = localStorage.getItem('user')
     if (!this.studentId) {
       console.error('Student ID not found in localStorage');
       return; // Ne zovi API ako nemamo studentId
     }
-
-    console.log("user ID:", this.studentId);
 
     this.menuService.getMenu(this.menuId, this.studentId).subscribe({
       next: (res: MenuWithCard) => {
@@ -82,9 +80,10 @@ export class MealComponent implements OnInit {
     }
 
     const payload = {
-      studentId: this.studentCard.studentID,
+      studentUsername: this.authService.username,
       delta: -this.totalPrice,
-      menuId: this.menuId
+      menuId: this.menuId,
+      studentId: this.authService.userId
     };
 
     this.menuService.takeMeal(payload).subscribe({

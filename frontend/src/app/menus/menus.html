@@ -2,7 +2,7 @@
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h3>Weekly Menus</h3>
-    <button type="button" class="btn btn-success" (click)="openMenuForm()">Create Menu</button>
+    <button *ngIf="isAdmin" type="button" class="btn btn-success" (click)="openMenuForm()">Create Menu</button>
   </div>
 
   <!-- Modal Form -->
@@ -165,7 +165,7 @@
                             (click)="deleteMenu(menu); $event.stopPropagation()">Delete</button>
 
                     <!-- Ako je user -->
-                    <button *ngIf="userRole === 'user'" type="button" class="btn btn-primary flex-fill"
+                    <button *ngIf="userRole === 'user' || userRole === 'student'" type="button" class="btn btn-primary flex-fill"
                             (click)="takeMeal(menu)">Take Meal</button>
                   </div>
 

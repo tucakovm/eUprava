@@ -12,7 +12,7 @@ export class UserService {
   private baseUrlCanteen = 'http://localhost:8001/api/canteens';
   private baseUrlMenu = 'http://localhost:8001/api/menus';
 
-  getUserById(username: string): Observable<User> {
+  getUserById(username: string, str: string | null): Observable<User> {
     return this.http.get<User>(`${this.baseUrl}/${username}`);
   }
 
@@ -21,7 +21,7 @@ export class UserService {
   }
 
   // Jednostavnija metoda - koristi novi backend endpoint
-  getMealHistoryWithReviews(userId: string): Observable<MealHistory[]> {
+  getMealHistoryWithReviews(userId: string | null): Observable<MealHistory[]> {
     return this.http.get<MealHistory[]>(`${this.baseUrlMenu}/reviews/${userId}`);
   }
 

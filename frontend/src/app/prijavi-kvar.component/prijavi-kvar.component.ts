@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HousingService } from '../services/housing.service';
-import { Kvar } from '../model/housing'; 
+import { Kvar } from '../model/housing';
 
 @Component({
   selector: 'app-prijavi-kvar',
@@ -31,7 +31,7 @@ export class PrijaviKvarComponent {
     if (!userStr) {
       throw new Error('Nije pronađen user u localStorage!');
     }
-    this.prijavioUsername = JSON.parse(userStr);
+    this.prijavioUsername = userStr;
   }
 
   submit() {

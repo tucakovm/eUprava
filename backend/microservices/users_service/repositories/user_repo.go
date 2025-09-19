@@ -193,18 +193,17 @@ LIMIT 1;
 
 func (r *UserRepository) GetUserByID(ctx context.Context, id string) (*models.UserDTO, error) {
 	const q = `SELECT id, firstname, lastname, username, email, is_active, role 
-               FROM users WHERE id = $1 LIMIT 1`
+               FROM users WHERE username = $1 LIMIT 1`
 
 	var (
-		u     models.UserDTO
-		idStr string
+		u models.UserDTO
 	)
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	err := r.DB.QueryRowContext(ctx, q, id).Scan(
-		&idStr,
+		&u.Id,
 		&u.FirstName,
 		&u.LastName,
 		&u.Username,
@@ -220,12 +219,6 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id string) (*models.Us
 		fmt.Printf("Database scan error: %v\n", err)
 		return nil, fmt.Errorf("database error: %v", err)
 	}
-
-	parsedID, err := uuid.Parse(idStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid UUID in database: %v", err)
-	}
-	u.Id = parsedID
-
+	
 	return &u, nil
 }

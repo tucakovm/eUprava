@@ -55,11 +55,11 @@ func NewDiningRepo() (*DiningRepo, error) {
 		return nil, fmt.Errorf("seeding menus for Canteen A failed: %w", err)
 	}
 
-	if err := repo.SeedMealHistory("550e8400-e29b-41d4-a716-446655440001"); err != nil {
+	if err := repo.SeedMealHistory("550e8400-e29b-41d4-a716-446655440003"); err != nil {
 		fmt.Println("Seeding meal history failed:", err)
 	}
 
-	if err := repo.SeedMenuReviews("550e8400-e29b-41d4-a716-446655440001"); err != nil {
+	if err := repo.SeedMenuReviews("550e8400-e29b-41d4-a716-446655440003"); err != nil {
 		fmt.Println("Seeding meal reviews failed:", err)
 	}
 

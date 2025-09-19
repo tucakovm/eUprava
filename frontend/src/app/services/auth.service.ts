@@ -19,7 +19,7 @@ export class AuthService {
         map(res => {
           if (typeof window !== 'undefined') {
             localStorage.setItem('token', res.token);
-            localStorage.setItem('user', res.user.id); // direktan string
+            localStorage.setItem('userId', res.user.id); // direktan string
             localStorage.setItem('role', res.user.role); // direktan string
             localStorage.setItem('user', res.user.username);
           }
@@ -36,8 +36,13 @@ export class AuthService {
 
   get userId(): string | null {
     if (typeof window === 'undefined') return null;
-    const id = localStorage.getItem('user');
+    const id = localStorage.getItem('userId');
     return id && id !== 'null' && id !== 'undefined' ? id : null;
+  }
+
+  get username(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('user'); // vrati direktno string
   }
 
 
@@ -55,6 +60,7 @@ export class AuthService {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('role');
+      localStorage.removeItem('userId');
     }
   }
 

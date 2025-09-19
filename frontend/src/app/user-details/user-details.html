@@ -33,6 +33,30 @@
       <div class="mt-4 d-flex gap-2">
         <a [routerLink]="['/users/edit', user.id]" class="btn btn-primary">Edit</a>
         <button class="btn btn-danger" (click)="deleteUser(user.id)">Delete</button>
+        <!-- NEW: Create Student Card button -->
+        <button class="btn btn-outline-secondary"
+                (click)="createCard()"
+                [disabled]="creatingCard">
+          <span *ngIf="creatingCard" class="spinner-border spinner-border-sm me-2"></span>
+          Create Student Card
+        </button>
+      </div>
+
+      <!-- NEW: Errors during card creation -->
+      <div *ngIf="cardError" class="alert alert-danger mt-3">
+        {{ cardError }}
+      </div>
+
+      <!-- NEW: Success message + basic card info -->
+      <!-- NEW: Success message + basic card info -->
+      <div *ngIf="createdCard" class="alert alert-success mt-3">
+        Student card created successfully.
+        <div class="mt-2">
+          <div><strong>Card ID:</strong> {{ createdCard.id }}</div>
+          <div><strong>Owner:</strong> {{ createdCard.studentUsername || user.username }}</div>
+          <div><strong>Balance (stanje):</strong> {{ createdCard.stanje }}</div>
+        </div>
+      </div>
       </div>
     </div>
   </div>
@@ -47,7 +71,7 @@
     </div>
 
     <!-- Table -->
-    <div *ngIf="history.length > 0" class="table-responsive">
+    <div *ngIf="!isAdmin && history.length > 0" class="table-responsive">
       <table class="table table-striped table-hover">
         <thead class="table-dark">
         <tr>
@@ -174,4 +198,3 @@
       </div>
     </div>
   </div>
-</div>
