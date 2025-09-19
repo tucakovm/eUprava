@@ -137,4 +137,7 @@ type DiningRepository interface {
 	GetTop3RatedMeals(limit int) ([]MenuRating, error)
 	CreateMealHistory(mh *MealHistory, userId string) error
 	IncrementPopularMeal(menuId, canteenId uuid.UUID) error
+
+	// NEW: svi meniji za dati dan (preko teksta u koloni weekday)
+	GetMenusByWeekday(weekday Weekday) ([]*Menu, error)
 }
