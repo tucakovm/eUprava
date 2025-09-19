@@ -1,0 +1,83 @@
+<div class="container py-3">
+
+  <!-- Header -->
+  <div class="d-flex align-items-baseline justify-content-between mb-3">
+    <h2 class="h4 mb-0">Menus for Today</h2>
+    <span class="text-muted">{{ today | date:'EEEE, d. MMM y' }}</span>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="alert alert-danger mb-3" role="alert">
+    {{ error }}
+  </div>
+
+  <!-- Empty -->
+  <div *ngIf="!error && menus.length === 0" class="alert alert-secondary" role="alert">
+    Nema dostupnih menija za današnji dan.
+  </div>
+
+  <!-- Menus grid -->
+  <div *ngIf="!error && menus.length > 0" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+    <div class="col" *ngFor="let m of menus; trackBy: trackByMenuId">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h3 class="h5 card-title mb-0">{{ m.name }}</h3>
+            <span class="badge text-bg-light">{{ m.weekday }}</span>
+          </div>
+
+          <!-- Breakfast -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between">
+              <div class="fw-semibold">Breakfast</div>
+              <div *ngIf="m.breakfast.price != null" class="fw-semibold">
+                {{ m.breakfast.price | currency:'EUR':'symbol':'1.2-2' }}
+              </div>
+            </div>
+            <div class="text-body">{{ m.breakfast.name || '—' }}</div>
+            <div *ngIf="m.breakfast.description" class="text-muted small mt-1">
+              {{ m.breakfast.description }}
+            </div>
+          </div>
+
+          <hr class="my-2">
+
+          <!-- Lunch -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between">
+              <div class="fw-semibold">Lunch</div>
+              <div *ngIf="m.lunch.price != null" class="fw-semibold">
+                {{ m.lunch.price | currency:'EUR':'symbol':'1.2-2' }}
+              </div>
+            </div>
+            <div class="text-body">{{ m.lunch.name || '—' }}</div>
+            <div *ngIf="m.lunch.description" class="text-muted small mt-1">
+              {{ m.lunch.description }}
+            </div>
+          </div>
+
+          <hr class="my-2">
+
+          <!-- Dinner -->
+          <div>
+            <div class="d-flex justify-content-between">
+              <div class="fw-semibold">Dinner</div>
+              <div *ngIf="m.dinner.price != null" class="fw-semibold">
+                {{ m.dinner.price | currency:'EUR':'symbol':'1.2-2' }}
+              </div>
+            </div>
+            <div class="text-body">{{ m.dinner.name || '—' }}</div>
+            <div *ngIf="m.dinner.description" class="text-muted small mt-1">
+              {{ m.dinner.description }}
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer bg-transparent border-0 pt-0">
+          <small class="text-muted">Canteen ID: {{ m.canteen_id }}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

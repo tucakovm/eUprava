@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams , HttpHeaders} from '@angular/common/http';
-import {Dom, Student, Soba, RecenzijaSobe, Kvar, StatusKvara, StudentskaKartica
+import {Dom, Student, Soba, RecenzijaSobe, Kvar, StatusKvara, StudentskaKartica , DiningMeal , DiningMenu
 } from '../model/housing';
 import { Observable } from 'rxjs';
 import { AuthService } from './auth.service';
@@ -98,4 +98,11 @@ export class HousingService {
   changeFaultStatus(kvarId: string, status: StatusKvara): Observable<{ status: string }> {
     return this.http.post<{ status: string }>(`${this.base}/faults/status`, { kvarId, status });
   }
+
+  // GET /dining/menus/today  (proksi ka Dining servisu)
+  getTodayDiningMenus() {
+    return this.http.get<DiningMenu[]>(`${this.base}/notifications/menus`);
+  }
+
+
 }

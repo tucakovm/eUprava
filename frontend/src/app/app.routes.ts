@@ -18,6 +18,7 @@ import { UnauthorizedComponent } from './unauthorized/unauthorized.component';
 
 // ⬇️ uvezi tvoj guard
 import { roleCanActivate, roleCanMatch } from './auth.guard';
+import { NotificationMealComponent } from './notification.meal.component/notification.meal.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -121,6 +122,13 @@ export const routes: Routes = [
     canMatch: [roleCanMatch],
     canActivate: [roleCanActivate],
     data: { roles: ['student'] }
+  },
+  {
+  path: 'notifications',
+    component: NotificationMealComponent,
+    canMatch: [roleCanMatch],
+    canActivate: [roleCanActivate],
+    data: { roles: ['student','admin'] }
   },
 
   // 401/403 stranica

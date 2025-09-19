@@ -19,4 +19,6 @@ export class App {
     this.auth.logout();
     this.router.navigate(['/login']);
   }
+
+
 }

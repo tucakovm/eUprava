@@ -48,3 +48,20 @@ export interface StudentskaKartica {
   stanje: number;
   studentUsername: string; // server šalje 'studentID' (camel case kao u domen modelu)
 }
+
+export interface DiningMeal {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+}
+
+export interface DiningMenu {
+  id: string;
+  name: string;
+  canteen_id: string;   // stiže kao snake_case iz backenda
+  weekday: string;
+  breakfast: DiningMeal;
+  lunch: DiningMeal;
+  dinner: DiningMeal;
+}
