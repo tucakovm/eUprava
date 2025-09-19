@@ -2,10 +2,14 @@ package handler
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/google/uuid"
 
+	"fmt"
 	"housing/domain"
 	"housing/service"
 	"log"
@@ -394,4 +398,70 @@ func (h *HousingHandler) ListFreeRooms(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.renderJSON(w, rooms)
+}
+
+/* ========================= Dining proxy ========================= */
+
+// GET /api/housing/notifications/menus
+// Proxy ka Dining servisu: GET {TARGET}/api/dining/menus/today
+func (h *HousingHandler) GetTodayDiningMenus(w http.ResponseWriter, r *http.Request) {
+	// 1) kandidati za bazni URL
+	candidates := []string{}
+	if env := os.Getenv("DINING_BASE_URL"); env != "" {
+		candidates = append(candidates, env)
+	}
+	// tipični default-i za dev / docker
+	candidates = append(candidates,
+		"http://localhost:8001",
+		"localhost:8001",
+		"http://dining-server:8001",
+		"http://host.docker.internal:8001",
+	)
+
+	client := &http.Client{Timeout: 5 * time.Second}
+
+	var resp *http.Response
+	var lastErr error
+
+	// 2) pokušaj redom dok jedan ne uspe
+	for _, base := range candidates {
+		req, err := http.NewRequest(http.MethodGet, base+"/api/dining/menus/today", nil)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		// (opciono) propagiraj identitet/korisne headere
+		if sid := r.Header.Get("X-Student-ID"); sid != "" {
+			req.Header.Set("X-Student-ID", sid)
+		}
+
+		res, err := client.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		resp = res
+		break
+	}
+
+	if resp == nil {
+		http.Error(w, "failed to contact dining service: "+fmt.Sprintf("%v", lastErr), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	// 3) propagiraj relevantne headere i status
+	for k, vals := range resp.Header {
+		switch k {
+		case "Content-Type", "Cache-Control":
+			for _, v := range vals {
+				w.Header().Add(k, v)
+			}
+		}
+	}
+	w.WriteHeader(resp.StatusCode)
+
+	// 4) prosledi telo kakvo jeste
+	_, _ = io.Copy(w, resp.Body)
 }

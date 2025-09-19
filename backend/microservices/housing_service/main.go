@@ -64,6 +64,8 @@ func main() {
 	router.Handle("/api/housing/rooms/faults", http.HandlerFunc(hh.ReportFault)).Methods(http.MethodPost)
 	router.Handle("/api/housing/faults/status", http.HandlerFunc(hh.ChangeFaultStatus)).Methods(http.MethodPost)
 
+	router.Handle("/api/housing/notifications/menus", http.HandlerFunc(hh.GetTodayDiningMenus)).Methods(http.MethodGet)
+
 	// === Server setup ===
 	port := os.Getenv("PORT")
 	if port == "" {

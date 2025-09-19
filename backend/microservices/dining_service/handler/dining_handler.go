@@ -382,6 +382,18 @@ func (dh *DiningHandler) TakeMeal(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
+// NEW: HTTP handler koji vraća sve menije za DANAŠNJI dan (lokalno vreme servera)
+func (dh *DiningHandler) GetTodayMenus(rw http.ResponseWriter, r *http.Request) {
+	menus, err := dh.service.GetMenusForToday()
+	if err != nil {
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		return
+	}
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	dh.renderJSON(rw, menus)
+}
+
 func (dh *DiningHandler) renderJSON(w http.ResponseWriter, v interface{}) {
 	js, err := json.Marshal(v)
 
