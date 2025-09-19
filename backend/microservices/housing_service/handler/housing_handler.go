@@ -2,9 +2,13 @@ package handler
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 
 	"housing/domain"
 	"housing/service"
@@ -394,4 +398,43 @@ func (h *HousingHandler) ListFreeRooms(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.renderJSON(w, rooms)
+}
+
+func (h *HousingHandler) IsStudentAssignedToAnySoba(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userId := strings.Trim(vars["userId"], `"`)
+	if userId == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+	bul, err := h.service.IsStudentAssignedToAnySoba(r.Context(), userId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(bul)
+}
+
+func (h *HousingHandler) GetRoomMealHistory(w http.ResponseWriter, r *http.Request) {
+	url := "http://dining-server:8001/api/canteens/meal-history/"
+
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Post(url, "application/json", r.Body)
+	if err != nil {
+		http.Error(w, "database exception", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, "Failed to read dining service response", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
 }

@@ -107,3 +107,7 @@ func (ds *DiningService) CreateMealHistory(mh *domain.MealHistory, userId string
 func (ds *DiningService) IncrementPopularMeal(menuId, canteenId uuid.UUID) error {
 	return ds.repo.IncrementPopularMeal(menuId, canteenId)
 }
+
+func (ds *DiningService) GetMealHistoryForUsernames(usernames []string) ([]domain.MealRoomHistory, error) {
+	return ds.repo.GetMealHistoryForUsernames(usernames)
+}

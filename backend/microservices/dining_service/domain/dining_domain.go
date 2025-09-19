@@ -97,6 +97,13 @@ type MealHistory struct {
 	SelectedAt time.Time `json:"selected_at"`
 }
 
+type MealRoomHistory struct {
+	UserName   string    `json:"user_name"`
+	MenuId     string    `json:"menu_id"`
+	MenuName   string    `json:"menu_name"`
+	SelectedAt time.Time `json:"selected_at"`
+}
+
 type MealHistoryWithReview struct {
 	Id         uuid.UUID   `json:"id"`
 	MenuId     uuid.UUID   `json:"menu_id"`
@@ -137,4 +144,5 @@ type DiningRepository interface {
 	GetTop3RatedMeals(limit int) ([]MenuRating, error)
 	CreateMealHistory(mh *MealHistory, userId string) error
 	IncrementPopularMeal(menuId, canteenId uuid.UUID) error
+	GetMealHistoryForUsernames(usernames []string) ([]MealRoomHistory, error)
 }

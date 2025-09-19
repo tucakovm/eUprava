@@ -293,3 +293,10 @@ func (s *Services) ListSlobodneSobe(ctx context.Context, domID uuid.UUID) ([]dom
 	defer cancel()
 	return s.Soba.ListSlobodne(ctx, s.DB, domID)
 }
+
+// service/services.go
+func (s *Services) IsStudentAssignedToAnySoba(ctx context.Context, studentID string) (bool, error) {
+	ctx, cancel := ctxTimeout(ctx)
+	defer cancel()
+	return s.Student.IsAssignedToAnySoba(ctx, s.DB, studentID)
+}

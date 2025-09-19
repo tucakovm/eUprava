@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams , HttpHeaders} from '@angular/common/http';
-import {Dom, Student, Soba, RecenzijaSobe, Kvar, StatusKvara, StudentskaKartica , DiningMeal , DiningMenu
+
+import {Dom, Student, Soba, RecenzijaSobe, Kvar, StatusKvara, StudentskaKartica , DiningMeal , DiningMenu , MealRoomHistory
+
 } from '../model/housing';
 import { Observable } from 'rxjs';
 import { AuthService } from './auth.service';
@@ -14,6 +16,13 @@ export class HousingService {
     getAllDoms() {
     return this.http.get<Dom[]>(`${this.base}/doms`);
   }
+
+  getMealHistoryForUsernames(usernames: string[]): Observable<MealRoomHistory[]> {
+    return this.http.post<MealRoomHistory[]>(`${this.base}/rooms/meal-history/`, {
+      usernames
+    });
+  }
+
 
   getDomById(id: string) {
     const params = new HttpParams().set('id', id);

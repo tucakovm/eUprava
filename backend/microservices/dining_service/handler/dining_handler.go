@@ -382,6 +382,76 @@ func (dh *DiningHandler) TakeMeal(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
+func (dh *DiningHandler) CheckDoesStudentInRoom(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userId := strings.Trim(vars["userId"], `"`)
+	if userId == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	url := fmt.Sprintf("http://housing-server:8003/api/housing/rooms/checkStudent/%s", userId)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		http.Error(w, "Failed to contact housing service: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		http.Error(w, fmt.Sprintf("Housing service error: %s", resp.Status), resp.StatusCode)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, "Failed to read housing service response", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
+}
+
+func (dh *DiningHandler) GetMealRoomHistory(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var request struct {
+		Usernames []string `json:"usernames"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		log.Printf("Invalid JSON format: %v", err)
+		// vraćamo praznu listu
+		json.NewEncoder(w).Encode([]domain.MealRoomHistory{})
+		return
+	}
+
+	if len(request.Usernames) == 0 {
+		log.Printf("Usernames array empty")
+		// vraćamo praznu listu
+		json.NewEncoder(w).Encode([]domain.MealRoomHistory{})
+		return
+	}
+
+	history, err := dh.service.GetMealHistoryForUsernames(request.Usernames)
+	if err != nil {
+		log.Printf("Failed to get meal history for usernames %v: %v", request.Usernames, err)
+		// vraćamo praznu listu
+		json.NewEncoder(w).Encode([]domain.MealRoomHistory{})
+		return
+	}
+
+	if history == nil {
+		history = []domain.MealRoomHistory{}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(history)
+}
+
 func (dh *DiningHandler) renderJSON(w http.ResponseWriter, v interface{}) {
 	js, err := json.Marshal(v)
 

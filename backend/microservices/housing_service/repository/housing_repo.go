@@ -173,8 +173,8 @@ func (dr *HousingRepo) InitData(ctx context.Context) error {
 		// Sobe
 		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO soba (id, broj, slobodna, kapacitet, dom_id) VALUES
-			 ($1,'101', true, 2, $3),
-			 ($2,'102', false, 2, $3)`,
+			 ($1,'101', true, 4, $3),
+			 ($2,'102', false, 4, $3)`,
 			soba101ID, soba102ID, dom1ID,
 		); err != nil {
 			return err
@@ -183,14 +183,14 @@ func (dr *HousingRepo) InitData(ctx context.Context) error {
 		// Studenti (Nikola/Marko u 102, Jovana bez sobe)
 		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO student (id, ime, prezime, username, soba_id) VALUES
-			 ($1,'Nikola','Nikolic','nikola123',$4),
+			 ($1,'Nikola','Nikolic','nikola123',NULL),
 			 ($2,'Jovana','Petrovic','jovana123',NULL),
-			 ($3,'Marko','Ilic','marko123',$4)
+			 ($3,'Marko','Ilic','marko123',NULL)
 			 ON CONFLICT (username) DO UPDATE
 			   SET ime = EXCLUDED.ime,
 			       prezime = EXCLUDED.prezime,
 			       soba_id = EXCLUDED.soba_id`,
-			studentNikolaID, studentJovanaID, studentMarkoID, soba102ID,
+			studentNikolaID, studentJovanaID, studentMarkoID,
 		); err != nil {
 			return err
 		}
@@ -355,6 +355,7 @@ type StudentRepository interface {
 	AssignToSoba(ctx context.Context, q DBTX, studentID uuid.UUID, sobaID uuid.UUID) error
 	UnassignSoba(ctx context.Context, q DBTX, studentID uuid.UUID) error
 	ListBySoba(ctx context.Context, q DBTX, sobaID uuid.UUID) ([]domain.Student, error)
+	IsAssignedToAnySoba(ctx context.Context, q DBTX, studentID string) (bool, error)
 }
 
 type studentRepo struct{}
@@ -565,4 +566,20 @@ func (r *karticaRepo) UpdateStanjeByUsername(ctx context.Context, q DBTX, studen
 		delta, studentUsername).
 		Scan(&k.ID, &k.Stanje, &k.StudentUsername)
 	return k, err
+}
+
+func (r *studentRepo) IsAssignedToAnySoba(ctx context.Context, q DBTX, studentID string) (bool, error) {
+	var hasRoom sql.NullString
+	err := q.QueryRowContext(ctx, `
+		SELECT soba_id
+		FROM student
+		WHERE username = $1
+	`, studentID).Scan(&hasRoom)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return hasRoom.Valid, nil
 }

@@ -40,6 +40,7 @@ func main() {
 	router.HandleFunc("/api/canteens/", diningHandler.CreateCanteen).Methods(http.MethodPost)
 	router.HandleFunc("/api/canteens/popular-meals/{id}", diningHandler.GetPopularMeals).Methods(http.MethodGet)
 	router.HandleFunc("/api/canteens/meal-history/{id}", diningHandler.GetMealHistory).Methods(http.MethodGet)
+	router.HandleFunc("/api/canteens/meal-history/", diningHandler.GetMealRoomHistory).Methods(http.MethodPost)
 
 	router.HandleFunc("/api/menus/{id}", diningHandler.GetMenusByCanteenID).Methods(http.MethodGet)
 	router.HandleFunc("/api/menus/{id}", diningHandler.DeleteMenu).Methods(http.MethodDelete)
@@ -50,6 +51,7 @@ func main() {
 	router.HandleFunc("/api/menus/reviews/", diningHandler.UpdateReview).Methods(http.MethodPut)
 	router.HandleFunc("/api/menus/reviews/{userId}", diningHandler.GetMealHistoryWithReviews).Methods(http.MethodGet)
 	router.HandleFunc("/api/menus/top-rated/", diningHandler.GetTopRatedMeals).Methods(http.MethodGet)
+	router.HandleFunc("/api/menus/checkStudent/{userId}", diningHandler.CheckDoesStudentInRoom).Methods(http.MethodGet)
 
 	router.HandleFunc("/api/meal/", diningHandler.TakeMeal).Methods(http.MethodPost)
 
