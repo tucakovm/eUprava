@@ -11,13 +11,18 @@
     {{ error }}
   </div>
 
+  <!-- Loading -->
+  <div *ngIf="!error && loading" class="alert alert-secondary" role="alert">
+    Učitavam menije…
+  </div>
+
   <!-- Empty -->
-  <div *ngIf="!error && menus.length === 0" class="alert alert-secondary" role="alert">
+  <div *ngIf="!error && !loading && menus.length === 0" class="alert alert-secondary" role="alert">
     Nema dostupnih menija za današnji dan.
   </div>
 
   <!-- Menus grid -->
-  <div *ngIf="!error && menus.length > 0" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+  <div *ngIf="!error && !loading && menus.length > 0" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
     <div class="col" *ngFor="let m of menus; trackBy: trackByMenuId">
       <div class="card h-100 shadow-sm">
         <div class="card-body">

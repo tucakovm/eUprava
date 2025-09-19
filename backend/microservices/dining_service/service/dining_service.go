@@ -4,6 +4,7 @@ import (
 	"dining/domain"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -110,4 +111,29 @@ func (ds *DiningService) IncrementPopularMeal(menuId, canteenId uuid.UUID) error
 
 func (ds *DiningService) GetMealHistoryForUsernames(usernames []string) ([]domain.MealRoomHistory, error) {
 	return ds.repo.GetMealHistoryForUsernames(usernames)
+}
+
+// NEW: Svi meniji iz svih kantina za današnji dan (lokalno vreme servera)
+func (ds *DiningService) GetMenusForToday() ([]*domain.Menu, error) {
+	// mapiranje time.Weekday -> domain.Weekday
+	switch time.Now().Local().Weekday() {
+	case time.Monday:
+		return ds.repo.GetMenusByWeekday(domain.Monday)
+	case time.Tuesday:
+		return ds.repo.GetMenusByWeekday(domain.Tuesday)
+	case time.Wednesday:
+		return ds.repo.GetMenusByWeekday(domain.Wednesday)
+	case time.Thursday:
+		return ds.repo.GetMenusByWeekday(domain.Thursday)
+	case time.Friday:
+		return ds.repo.GetMenusByWeekday(domain.Friday)
+	case time.Saturday:
+		return ds.repo.GetMenusByWeekday(domain.Saturday)
+	case time.Sunday:
+		return ds.repo.GetMenusByWeekday(domain.Sunday)
+	default:
+		// fallback, ne bi trebalo nikad da se desi
+		return ds.repo.GetMenusByWeekday(domain.Weekday(time.Now().Weekday().String()))
+	}
+
 }

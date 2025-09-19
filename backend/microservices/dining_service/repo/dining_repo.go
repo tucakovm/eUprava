@@ -924,3 +924,51 @@ func (r *DiningRepo) GetMealHistoryForUsernames(usernames []string) ([]domain.Me
 
 	return history, nil
 }
+
+// NEW: Svi meniji (sa kompletno uvezanim meal-ovima) za prosleđeni dan u nedelji
+func (r *DiningRepo) GetMenusByWeekday(weekday domain.Weekday) ([]*domain.Menu, error) {
+	rows, err := r.DB.Query(`
+		SELECT 
+			m.id, m.name, m.canteen_id, m.weekday,
+			b.id, b.name, b.description, b.price,
+			l.id, l.name, l.description, l.price,
+			d.id, d.name, d.description, d.price
+		FROM menus m
+		LEFT JOIN meals b ON m.breakfast_id = b.id
+		LEFT JOIN meals l ON m.lunch_id = l.id
+		LEFT JOIN meals d ON m.dinner_id = d.id
+		WHERE m.weekday = $1
+		ORDER BY m.canteen_id, m.name;
+	`, string(weekday))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var menus []*domain.Menu
+	for rows.Next() {
+		var menu domain.Menu
+		var breakfast, lunch, dinner domain.Meal
+
+		err := rows.Scan(
+			&menu.Id, &menu.Name, &menu.CanteenId, &menu.Weekday,
+			&breakfast.Id, &breakfast.Name, &breakfast.Description, &breakfast.Price,
+			&lunch.Id, &lunch.Name, &lunch.Description, &lunch.Price,
+			&dinner.Id, &dinner.Name, &dinner.Description, &dinner.Price,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		menu.Breakfast = breakfast
+		menu.Lunch = lunch
+		menu.Dinner = dinner
+
+		menus = append(menus, &menu)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return menus, nil
+}
