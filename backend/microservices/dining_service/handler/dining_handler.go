@@ -382,6 +382,39 @@ func (dh *DiningHandler) TakeMeal(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
+func (dh *DiningHandler) CheckDoesStudentInRoom(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userId := strings.Trim(vars["userId"], `"`)
+	if userId == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	url := fmt.Sprintf("http://housing-server:8003/api/housing/rooms/checkStudent/%s", userId)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		http.Error(w, "Failed to contact housing service: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		http.Error(w, fmt.Sprintf("Housing service error: %s", resp.Status), resp.StatusCode)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, "Failed to read housing service response", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
+}
+
 func (dh *DiningHandler) renderJSON(w http.ResponseWriter, v interface{}) {
 	js, err := json.Marshal(v)
 

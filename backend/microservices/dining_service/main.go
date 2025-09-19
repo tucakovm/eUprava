@@ -50,6 +50,7 @@ func main() {
 	router.HandleFunc("/api/menus/reviews/", diningHandler.UpdateReview).Methods(http.MethodPut)
 	router.HandleFunc("/api/menus/reviews/{userId}", diningHandler.GetMealHistoryWithReviews).Methods(http.MethodGet)
 	router.HandleFunc("/api/menus/top-rated/", diningHandler.GetTopRatedMeals).Methods(http.MethodGet)
+	router.HandleFunc("/api/menus/checkStudent/{userId}", diningHandler.CheckDoesStudentInRoom).Methods(http.MethodGet)
 
 	router.HandleFunc("/api/meal/", diningHandler.TakeMeal).Methods(http.MethodPost)
 

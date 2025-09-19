@@ -41,6 +41,10 @@ export class MenuService {
     return this.http.get<MenuWithCard>(`${this.baseUrl2}${menuId}`, { headers });
   }
 
+  checkStudent(userId: string | null): Observable<boolean> {
+    return this.http.get<boolean>(`${this.baseUrl}checkStudent/${userId}`);
+  }
+
   takeMeal(payload: { studentId: string | null; delta: number; menuId: any, studentUsername: string | null}) {
     return this.http.post("http://localhost:8001/api/meal/", payload);
   }

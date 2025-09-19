@@ -58,6 +58,7 @@ func main() {
 	router.Handle("/api/housing/rooms/detail", http.HandlerFunc(hh.GetRoomDetail)).Methods(http.MethodGet)
 	router.Handle("/api/housing/rooms/assign", http.HandlerFunc(hh.AssignStudentToRoom)).Methods(http.MethodPost)
 	router.Handle("/api/housing/rooms/free", http.HandlerFunc(hh.ListFreeRooms)).Methods(http.MethodGet) // NOVO: slobodne sobe
+	router.Handle("/api/housing/rooms/checkStudent/{userId}", http.HandlerFunc(hh.IsStudentAssignedToAnySoba)).Methods(http.MethodGet)
 
 	// Reviews & Faults
 	router.Handle("/api/housing/rooms/reviews", http.HandlerFunc(hh.AddRoomReview)).Methods(http.MethodPost)

@@ -355,6 +355,7 @@ type StudentRepository interface {
 	AssignToSoba(ctx context.Context, q DBTX, studentID uuid.UUID, sobaID uuid.UUID) error
 	UnassignSoba(ctx context.Context, q DBTX, studentID uuid.UUID) error
 	ListBySoba(ctx context.Context, q DBTX, sobaID uuid.UUID) ([]domain.Student, error)
+	IsAssignedToAnySoba(ctx context.Context, q DBTX, studentID string) (bool, error)
 }
 
 type studentRepo struct{}
@@ -565,4 +566,20 @@ func (r *karticaRepo) UpdateStanjeByUsername(ctx context.Context, q DBTX, studen
 		delta, studentUsername).
 		Scan(&k.ID, &k.Stanje, &k.StudentUsername)
 	return k, err
+}
+
+func (r *studentRepo) IsAssignedToAnySoba(ctx context.Context, q DBTX, studentID string) (bool, error) {
+	var hasRoom sql.NullString
+	err := q.QueryRowContext(ctx, `
+		SELECT soba_id
+		FROM student
+		WHERE username = $1
+	`, studentID).Scan(&hasRoom)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return hasRoom.Valid, nil
 }

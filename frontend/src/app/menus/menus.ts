@@ -5,6 +5,7 @@ import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { Menu, Weekday } from '../model/menus';
 import { MenuService } from '../services/menu.service';
 import { AuthService} from '../services/auth.service';
+import {Observable} from 'rxjs';
 
 @Component({
   selector: 'app-menus',
@@ -48,6 +49,7 @@ export class MenusComponent implements OnInit {
     this.userRole = (this.authService.userRole as 'admin' | 'user') ?? 'user';
     this.canteenId = this.route.snapshot.paramMap.get('id');
     this.isAdmin = this.authService.userRole === 'admin';
+    var userID = localStorage.getItem("")
 
     if (this.canteenId) {
       this.getMenus(this.canteenId);
@@ -137,7 +139,26 @@ export class MenusComponent implements OnInit {
   }
 
   takeMeal(menu: any) {
-    this.router.navigate(['/meal', menu.id]);
+    const userId = localStorage.getItem("user"); // ili gde već čuvaš userId
+    if (!userId) {
+      alert("User not logged in!");
+      return;
+    }
+
+    this.menuService.checkStudent(userId).subscribe({
+      next: (isInRoom) => {
+        if (!isInRoom) {
+          alert("Student is not assigned in Room");
+          return;
+        }
+
+        this.router.navigate(['/meal', menu.id]);
+      },
+      error: (err) => {
+        console.error("Error checking student room assignment", err);
+        alert("Failed to check student room assignment.");
+      }
+    });
   }
 
 

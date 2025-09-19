@@ -3,8 +3,10 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 
 	"housing/domain"
 	"housing/service"
@@ -394,4 +396,21 @@ func (h *HousingHandler) ListFreeRooms(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.renderJSON(w, rooms)
+}
+
+func (h *HousingHandler) IsStudentAssignedToAnySoba(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userId := strings.Trim(vars["userId"], `"`)
+	if userId == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+	bul, err := h.service.IsStudentAssignedToAnySoba(r.Context(), userId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(bul)
 }
