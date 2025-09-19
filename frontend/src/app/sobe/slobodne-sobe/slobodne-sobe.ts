@@ -5,6 +5,7 @@ import { HousingService } from '../../services/housing.service';
 import { Soba } from '../../model/housing';
 import { Observable, of } from 'rxjs';
 import { catchError, map, startWith, switchMap } from 'rxjs/operators';
+import { AuthService } from '../../services/auth.service';
 
 type RoomsState =
   | { status: 'loading'; domId: string | null }
@@ -22,6 +23,7 @@ export class SlobodneSobeComponent {
   private route = inject(ActivatedRoute);
   private api = inject(HousingService);
   private router = inject(Router);
+  public auth = inject(AuthService);
 
   state$: Observable<RoomsState> = this.route.queryParamMap.pipe(
     switchMap(qp => {
@@ -45,4 +47,5 @@ export class SlobodneSobeComponent {
   toDetails(id:string) {
     this.router.navigate(['/rooms/detail'], { queryParams: { id } });
   }
+
 }

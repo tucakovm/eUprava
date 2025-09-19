@@ -173,7 +173,7 @@ func (dr *HousingRepo) InitData(ctx context.Context) error {
 		// Sobe
 		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO soba (id, broj, slobodna, kapacitet, dom_id) VALUES
-			 ($1,'101', true, 3, $3),
+			 ($1,'101', true, 2, $3),
 			 ($2,'102', false, 2, $3)`,
 			soba101ID, soba102ID, dom1ID,
 		); err != nil {
