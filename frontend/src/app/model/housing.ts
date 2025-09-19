@@ -6,6 +6,13 @@ export interface Dom {
   adresa: string;
 }
 
+export interface MealRoomHistory {
+  user_name: string;
+  menu_id: string;
+  menu_name: string;
+  selected_at: string; // ISO string
+}
+
 export interface Student {
   id: string;
   ime: string;

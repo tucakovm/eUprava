@@ -9,6 +9,7 @@
 
   <!-- Content -->
   <ng-container *ngIf="!vm.loading && !vm.error && vm.soba as s">
+    <!-- Soba Info -->
     <div class="card mb-3">
       <div class="card-body">
         <h4 class="card-title">Soba {{ s.broj }}</h4>
@@ -17,9 +18,7 @@
             {{ s.slobodna ? 'Slobodna' : 'Zauzeta' }}
           </span>
         </p>
-        <p class="card-text text-muted">
-          ID: {{ s.id }} | Dom: {{ s.domId }}
-        </p>
+        <p class="card-text text-muted">ID: {{ s.id }} | Dom: {{ s.domId }}</p>
         <div class="row text-center">
           <div class="col">
             <div class="fw-bold">{{ s.kapacitet }}</div>
@@ -48,102 +47,126 @@
         <div *ngIf="!s.studenti?.length" class="p-3 text-muted">
           Nema prijavljenih studenata.
         </div>
-        <table
-          *ngIf="s.studenti?.length"
-          class="table table-sm mb-0 table-striped"
-        >
+        <table *ngIf="s.studenti?.length" class="table table-sm mb-0 table-striped">
           <thead class="table-light">
-            <tr>
-              <th>Ime</th>
-              <th>Prezime</th>
-              <th>ID</th>
-            </tr>
+          <tr>
+            <th>Ime</th>
+            <th>Prezime</th>
+            <th>ID</th>
+          </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let st of s.studenti; trackBy: trackByStudent">
-              <td>{{ st.ime }}</td>
-              <td>{{ st.prezime }}</td>
-              <td class="text-muted">{{ st.id }}</td>
-            </tr>
+          <tr *ngFor="let st of s.studenti; trackBy: trackByStudent">
+            <td>{{ st.ime }}</td>
+            <td>{{ st.prezime }}</td>
+            <td class="text-muted">{{ st.id }}</td>
+          </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- Recenzije -->
-<div class="card mb-3">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <div>
-      Recenzije
-      <span *ngIf="vm.avgOcena" class="badge bg-secondary ms-2">
-        Prosek {{ vm.avgOcena }}
-      </span>
-    </div>
-    <!-- Novo dugme -->
-    <button *ngIf="canStudentAct(s)"
-        class="btn btn-sm btn-primary"
-        [routerLink]="['/rooms/review']"
-        [queryParams]="{ sobaId: s.id }">
-  Ostavi recenziju
-</button>
-  </div>
-
-  <ul class="list-group list-group-flush" *ngIf="s.recenzije?.length" >
-    <li
-      class="list-group-item"
-      *ngFor="let r of s.recenzije; trackBy: trackById"
-    >
-      <div class="d-flex justify-content-between">
-        <div>
-          <strong>Ocena: {{ r.ocena }}</strong>
-          <div class="text-muted small">Autor: {{ r.autorUsername }}</div>
-        </div>
-        <div *ngIf="r.komentar" class="fst-italic">
-          “{{ r.komentar }}”
+    <!-- MEAL HISTORY -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            Istorija obroka stanara
+            <span *ngIf="vm.mealHistory?.length" class="badge bg-secondary ms-2">
+              {{ vm.mealHistory?.length }} obroka
+            </span>
+          </div>
         </div>
       </div>
-    </li>
-  </ul>
-  <div *ngIf="!s.recenzije?.length" class="p-3 text-muted">
-    Nema recenzija.
-  </div>
-</div>
+      <div class="card-body p-0">
+        <div *ngIf="!vm.mealHistory?.length" class="p-3 text-muted">
+          Nema podataka o obrocima.
+        </div>
 
+        <!-- Po studentima -->
+        <div *ngIf="vm.mealHistory?.length" class="accordion" id="mealHistoryAccordion">
+          <div *ngFor="let userName of getUniqueUsers(vm.mealHistory); let i = index" class="accordion-item">
+            <h2 class="accordion-header" [id]="'heading' + i">
+              <button class="accordion-button collapsed" type="button"
+                      data-bs-toggle="collapse"
+                      [attr.data-bs-target]="'#collapse' + i"
+                      [attr.aria-expanded]="false"
+                      [attr.aria-controls]="'collapse' + i">
+                <strong>{{ userName }}</strong>
+                <span class="badge bg-primary ms-2">
+                  {{ getMealsForUser(userName, vm.mealHistory)?.length }}
+                  {{ getMealsForUser(userName, vm.mealHistory)?.length === 1 ? 'obrok' : 'obroka' }}
+                </span>
+              </button>
+            </h2>
+            <div [id]="'collapse' + i" class="accordion-collapse collapse"
+                 [attr.aria-labelledby]="'heading' + i" data-bs-parent="#mealHistoryAccordion">
+              <div class="accordion-body p-0">
+                <div class="list-group list-group-flush">
+                  <div *ngFor="let meal of getMealsForUser(userName, vm.mealHistory); trackBy: trackByMealHistory" class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <h6 class="mb-1">{{ meal.menu_name }}</h6>
+                        <small class="text-muted">{{ formatDate(meal.selected_at) }}</small>
+                      </div>
+                      <small class="text-muted">ID: {{ meal.menu_id.substring(0, 8) }}...</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recenzije -->
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          Recenzije
+          <span *ngIf="vm.avgOcena" class="badge bg-secondary ms-2">Prosek {{ vm.avgOcena }}</span>
+        </div>
+        <button *ngIf="canStudentAct(s)" class="btn btn-sm btn-primary"
+                [routerLink]="['/rooms/review']" [queryParams]="{ sobaId: s.id }">
+          Ostavi recenziju
+        </button>
+      </div>
+      <ul class="list-group list-group-flush" *ngIf="s.recenzije?.length">
+        <li class="list-group-item" *ngFor="let r of s.recenzije; trackBy: trackById">
+          <div class="d-flex justify-content-between">
+            <div>
+              <strong>Ocena: {{ r.ocena }}</strong>
+              <div class="text-muted small">Autor: {{ r.autorUsername }}</div>
+            </div>
+            <div *ngIf="r.komentar" class="fst-italic">"{{ r.komentar }}"</div>
+          </div>
+        </li>
+      </ul>
+      <div *ngIf="!s.recenzije?.length" class="p-3 text-muted">Nema recenzija.</div>
+    </div>
 
     <!-- Kvarovi -->
-<div class="card mb-3">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <div>Kvarovi</div>
-    <button *ngIf="canStudentAct(s)"
-        class="btn btn-sm btn-outline-danger"
-        [routerLink]="['/rooms/fault']"
-        [queryParams]="{ sobaId: s.id }">
-  Prijavi kvar
-</button>
-  </div>
-
-  <ul class="list-group list-group-flush" *ngIf="s.kvarovi?.length">
-    <li
-      class="list-group-item d-flex justify-content-between align-items-center"
-      *ngFor="let k of s.kvarovi; trackBy: trackById"
-    >
-      <div>
-        <div class="fw-bold">{{ k.opis }}</div>
-        <small class="text-muted">Prijavio: {{ k.prijavioUsername }}</small>
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>Kvarovi</div>
+        <button *ngIf="canStudentAct(s)" class="btn btn-sm btn-outline-danger"
+                [routerLink]="['/rooms/fault']" [queryParams]="{ sobaId: s.id }">
+          Prijavi kvar
+        </button>
       </div>
-      <span [class]="statusClass(k.status)">
-        {{
-          k.status === 'prijavljen'
-            ? 'Prijavljen'
-            : k.status === 'u_toku'
-            ? 'U toku'
-            : 'Rešen'
-        }}
-      </span>
-    </li>
-  </ul>
-
-  <div *ngIf="!s.kvarovi?.length" class="p-3 text-muted">
-    Nema prijavljenih kvarova.
-  </div>
+      <ul class="list-group list-group-flush" *ngIf="s.kvarovi?.length">
+        <li class="list-group-item d-flex justify-content-between align-items-center" *ngFor="let k of s.kvarovi; trackBy: trackById">
+          <div>
+            <div class="fw-bold">{{ k.opis }}</div>
+            <small class="text-muted">Prijavio: {{ k.prijavioUsername }}</small>
+          </div>
+          <span [class]="statusClass(k.status)">
+            {{ k.status === 'prijavljen' ? 'Prijavljen' : k.status === 'u_toku' ? 'U toku' : 'Rešen' }}
+          </span>
+        </li>
+      </ul>
+      <div *ngIf="!s.kvarovi?.length" class="p-3 text-muted">Nema prijavljenih kvarova.</div>
+    </div>
+  </ng-container>
 </div>

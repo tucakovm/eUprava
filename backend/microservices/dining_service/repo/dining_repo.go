@@ -5,6 +5,7 @@ import (
 	"dining/domain"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -874,4 +875,52 @@ func (r *DiningRepo) GetTop3RatedMeals(limit int) ([]domain.MenuRating, error) {
 	}
 
 	return topMenus, nil
+}
+
+func (r *DiningRepo) GetMealHistoryForUsernames(usernames []string) ([]domain.MealRoomHistory, error) {
+	if len(usernames) == 0 {
+		return []domain.MealRoomHistory{}, nil
+	}
+
+	placeholders := make([]string, len(usernames))
+	args := make([]interface{}, len(usernames))
+	for i, username := range usernames {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = username
+	}
+	placeholderString := strings.Join(placeholders, ",")
+
+	query := fmt.Sprintf(`
+        SELECT 
+            CONCAT(u.firstname, ' ', u.lastname) as user_name,
+            mh.menu_id,
+            m.name as menu_name,
+            mh.selected_at
+        FROM meal_history mh
+        JOIN users u ON mh.user_id = u.id
+        JOIN menus m ON mh.menu_id = m.id
+        WHERE u.username IN (%s)
+        ORDER BY mh.selected_at DESC
+    `, placeholderString)
+
+	rows, err := r.DB.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch meal history for usernames: %w", err)
+	}
+	defer rows.Close()
+
+	var history []domain.MealRoomHistory
+	for rows.Next() {
+		var h domain.MealRoomHistory
+		if err := rows.Scan(&h.UserName, &h.MenuId, &h.MenuName, &h.SelectedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan meal history row: %w", err)
+		}
+		history = append(history, h)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating meal history rows: %w", err)
+	}
+
+	return history, nil
 }
