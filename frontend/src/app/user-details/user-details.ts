@@ -35,6 +35,15 @@ export class UserDetails implements OnInit {
   creatingCard = false;
   cardError: string | null = null;
   createdCard?: StudentskaKartica;
+  balanceData = {
+  studentUsername: '',
+  delta: 0
+  };
+
+  balanceLoading = false;
+  balanceError: string | null = null;
+  balanceSuccess = false;
+  updatedCard: StudentskaKartica | null = null;
 
 
   // Review modal data
@@ -197,6 +206,25 @@ export class UserDetails implements OnInit {
         this.cardError =
           err?.error?.message || err?.message || 'Failed to create student card.';
         console.error('createStudentCardIfMissing error', err);
+      }
+    });
+  }
+
+  onUpdateBalance() {
+  this.balanceLoading = true;
+  this.balanceError = null;
+  this.balanceSuccess = false;
+
+  this.housingService.updateStudentCardBalance(this.balanceData.studentUsername, this.balanceData.delta)
+    .subscribe({
+      next: (res) => {
+        this.updatedCard = res;
+        this.balanceSuccess = true;
+        this.balanceLoading = false;
+      },
+      error: (err) => {
+        this.balanceError = err.message || 'Failed to update balance.';
+        this.balanceLoading = false;
       }
     });
   }

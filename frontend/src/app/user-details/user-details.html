@@ -59,6 +59,51 @@
       </div>
       </div>
     </div>
+    <!-- Update Balance Form -->
+<div class="card mt-4 shadow-sm" *ngIf="authService.userRole === 'admin'">
+  <div class="card-body" >
+    <h5 class="card-title">Update Student Card Balance</h5>
+
+    <form #balanceForm="ngForm" (ngSubmit)="onUpdateBalance()">
+      <div class="mb-3">
+        <label for="studentUsername" class="form-label">Student Username</label>
+        <input
+          type="text"
+          id="studentUsername"
+          class="form-control"
+          [(ngModel)]="balanceData.studentUsername"
+          name="studentUsername"
+          required
+        />
+      </div>
+
+      <div class="mb-3">
+        <label for="balanceDelta" class="form-label">Amount (Δ)</label>
+        <input
+          type="number"
+          id="balanceDelta"
+          class="form-control"
+          [(ngModel)]="balanceData.delta"
+          name="balanceDelta"
+          required
+        />
+      </div>
+
+      <button type="submit" class="btn btn-success" [disabled]="balanceLoading">
+        <span *ngIf="balanceLoading" class="spinner-border spinner-border-sm me-2"></span>
+        Update Balance
+      </button>
+    </form>
+
+    <!-- Success / Error Messages -->
+    <div *ngIf="balanceError" class="alert alert-danger mt-3">{{ balanceError }}</div>
+    <div *ngIf="balanceSuccess" class="alert alert-success mt-3">
+      Balance updated successfully. <br />
+      <strong>New Balance:</strong> {{ updatedCard?.stanje }}
+    </div>
+  </div>
+</div>
+
   </div>
 
   <!-- Meal History -->
