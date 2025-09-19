@@ -34,7 +34,7 @@
         <a [routerLink]="['/users/edit', user.id]" class="btn btn-primary">Edit</a>
         <button class="btn btn-danger" (click)="deleteUser(user.id)">Delete</button>
         <!-- NEW: Create Student Card button -->
-        <button class="btn btn-outline-secondary"
+        <button class="btn btn-outline-secondary" *ngIf="authService.userRole === 'student'"
                 (click)="createCard()"
                 [disabled]="creatingCard">
           <span *ngIf="creatingCard" class="spinner-border spinner-border-sm me-2"></span>

@@ -23,7 +23,7 @@ export class UserDetails implements OnInit {
   private route = inject(ActivatedRoute);
   private userService = inject(UserService);
   private cd = inject(ChangeDetectorRef);
-  private authService = inject(AuthService)
+  public authService = inject(AuthService)
   private housingService = inject(HousingService);
 
 

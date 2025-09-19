@@ -5,6 +5,7 @@ import { catchError, map, of, startWith, switchMap } from 'rxjs';
 
 import { HousingService } from '../../services/housing.service';
 import { Soba, RecenzijaSobe, Kvar, Student } from '../../model/housing';
+import { AuthService } from '../../services/auth.service';
 
 interface ViewModel {
   loading: boolean;
@@ -26,6 +27,7 @@ interface ViewModel {
 export class RoomDetailsComponent {
   private route = inject(ActivatedRoute);
   private roomService = inject(HousingService);
+  public auth = inject(AuthService);
 
   vm$ = this.route.queryParamMap.pipe(
   map((pm) => pm.get('id')),
@@ -73,5 +75,15 @@ export class RoomDetailsComponent {
   }
   trackByStudent(_: number, s: Student) {
     return s.id;
+  }
+   canStudentAct(s: Soba | null | undefined): boolean {
+    if (!s || this.auth.userRole !== 'student' || !s.studenti?.length) return false;
+
+    const currentUsername = this.auth.username ?? '';
+
+    return s.studenti.some((st: any) =>
+      (typeof st?.username === 'string' && st.username === currentUsername) ||
+      (typeof st?.korisnickoIme === 'string' && st.korisnickoIme === currentUsername)
+    );
   }
 }
